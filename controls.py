@@ -25,7 +25,7 @@ soc.bind((HOST, PORT))
 soc.listen(1)
 print("Server is listening!")
 
-# key, mouse, screen socks are  new socket objects for send and recv msg
+# key, mouse, screen socks are  new socket objects for send and recv msgגג
 # client addr is the ip and port 
         
 key_sock, client_addr1 = soc.accept()
