@@ -198,33 +198,21 @@ def divide_image(image):
 
 #added now
 def encode_image_part(part):
-    # ניסיון ראשון – איכות רגילה
     buf = io.BytesIO()
-    part.save(
-        buf,
-        format="JPEG",
-        quality=50,
-        subsampling=2,
-        optimize=True
-    )
+    part.save(buf, format="JPEG", quality=50, subsampling=2, optimize=True)
     data = buf.getvalue()
-
     if len(data) <= MAX_IMAGE_BYTES:
         return data
 
-    # ניסיון שני – איכות נמוכה יותר
     buf = io.BytesIO()
-    part.save(
-        buf,
-        format="JPEG",
-        quality=30,
-        subsampling=2,
-        optimize=True
-    )
+    part.save(buf, format="JPEG", quality=30, subsampling=2, optimize=True)
     data = buf.getvalue()
+    if len(data) <= MAX_IMAGE_BYTES:
+        return data
 
-    return data
-
+    buf = io.BytesIO()
+    part.save(buf, format="JPEG", quality=20, subsampling=2, optimize=True)
+    return buf.getvalue()
 #try to make screen soc tcp when sending 1 byte
 # def send_screenshot():
 #     while True:    
