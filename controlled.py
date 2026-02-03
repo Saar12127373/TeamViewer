@@ -124,7 +124,7 @@ def key_events():
 def mouse_handeling():
     # for some reason its not exacly the width and heigh it should be
         #server_res = (server_width, server_heigh)
-    server_res  = (1930, 1105)
+    server_res = (server_width, server_heigh)
     client_res = (client_width, client_heigth)
 
     while True:
