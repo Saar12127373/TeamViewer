@@ -183,10 +183,8 @@ def divide_image(image):
             bottom = (i + 1) * part_height
 
             # Adjust the last parts on the right and bottom edges
-            if j == cols - 1:
-                right = width
-            if i == rows - 1:
-                bottom = height
+            right = (j + 1) * part_width
+            bottom = (i + 1) * part_height
 
             parts.append(image.crop((left, top, right, bottom)))
 
