@@ -260,18 +260,41 @@ def make_black_part_bytes(part_width, part_height):
     black_part.save(buf, format='JPEG', quality=30, optimize=True)
     return buf.getvalue()
 
-def handle_Screenshots():
-    rows, cols = 8, 16
+# def handle_Screenshots():
+#     rows, cols = 8, 16
 
-    screen_w, screen_h = get_screen_resolution()
-    part_width = screen_w // cols
-    part_height = screen_h // rows
+#     screen_w, screen_h = get_screen_resolution()
+#     part_width = screen_w // cols
+#     part_height = screen_h // rows
+#     while True:
+#         image_parts, default_part_bytes = initialize_image_parts(part_width, part_height)
+
+#         receive_screenshot(image_parts)
+
+#         load_screenshot(image_parts, default_part_bytes)
+
+#changed
+def handle_Screenshots():
     while True:
-        image_parts, default_part_bytes = initialize_image_parts(part_width, part_height)
+        # זמני: נכין רשימה ריקה (או עם bytes ריקים)
+        image_parts = [b""] * 128
 
         receive_screenshot(image_parts)
 
+        # נשתמש בגודל אמיתי מהחלק הראשון שהגיע
+        first = Image.open(io.BytesIO(image_parts[0]))
+        part_width, part_height = first.size
+
+        default_part_bytes = make_black_part_bytes(part_width, part_height)
+
+        # מלא חסרים ב-default (רק אם ריק)
+        for i in range(128):
+            if not image_parts[i]:
+                image_parts[i] = default_part_bytes
+
         load_screenshot(image_parts, default_part_bytes)
+
+
 
 # Create threads for each function so they both will work at the same time:
 
