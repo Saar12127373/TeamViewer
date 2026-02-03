@@ -9,8 +9,6 @@ import pyautogui
 import struct
 from PIL import ImageGrab
 import io
-import cv2
-
 
 
 HOST = "10.0.0.30"
