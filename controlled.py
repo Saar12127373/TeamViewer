@@ -58,8 +58,11 @@ print("server connectes! ")
 # keys_dict = {160: 'shift', 65: 'a', 91: 'cmd', 164: 'alt_l', 32: 'space', 165: 'alt_gr', 93: 'menu', 226: '\\', 37: 'left', 40: 'down', 39: 'right', 96: '0', 97: '1', 49: '1', 98: '2', 99: '3', 76: 'l', 27: 'esc', 100: '4', 101: '5', 102:'6', 103:'7', 104:'8', 105:'9', 110: '.', 13: 'enter', 107: '+', 109: '-', 106: '*', 111: '/', 162: 'ctrl_l', 86: '\x16', 190: '.', 90: 'z', 88: 'x', 67: 'c', 66: 'b', 78: 'n', 77: 'm', 188: ',', 191: '/', 161: 'shift_r', 38: 'up', 20: 'caps_lock', 83: 's', 68: 'd', 70: 'f', 72: 'h', 71: 'g', 74: 'j', 75: 'k', 186: ';', 222: "'", 9: 'tab', 81: 'q', 87: 'w', 69: 'e', 82: 'r', 84: 't', 89: 'y', 85: 'u', 73: 'i', 79: 'o', 80: 'p', 219: '[', 221: ']', 220: '\\', 46: 'delete', 35: 'end', 34: 'page_down', 53: '5', 192: '`', 50: '2', 51: '3', 52: '4', 54: '6', 55: '7', 56: '8', 57: '9', 48: '0', 189: '-', 187: '=', 8: 'backspace', 45: 'insert', 36: 'home', 33: 'page_up', 173: 'media_volume_mute', 174: 'media_volume_down', 175: 'media_volume_up', 177: 'media_previous', 179: 'media_play_pause', 176: 'media_next', 132: 'f21', 44: 'print_screen', 19: 'pause', 145: 'scroll_lock', 183: 'f'}
 
 
-server_width = int.from_bytes(recv_all(2, mouseSoc))
-server_heigh = int.from_bytes(recv_all(2, mouseSoc))
+# server_width = int.from_bytes(recv_all(2, mouseSoc))
+# server_heigh = int.from_bytes(recv_all(2, mouseSoc))
+# changed now
+server_width = int.from_bytes(recv_all(2, mouseSoc), "big")
+server_heigh = int.from_bytes(recv_all(2, mouseSoc), "big")
 
 def get_screen_resolution():
     user32 = ctypes.windll.user32
