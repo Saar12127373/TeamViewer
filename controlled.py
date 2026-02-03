@@ -239,6 +239,9 @@ def send_screenshot():
             packet = f"{idx:03}".encode() + encoded
             screenSoc.sendto(packet, (HOST, UDP_PORT))
 
+        if len(packet) > MAX_UDP_PAYLOAD:
+            print("BIG PACKET:", len(packet))
+            
         screenSoc.sendto(b"1", (HOST, UDP_PORT))
         time.sleep(0.01)  # FPS cap
 
