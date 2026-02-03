@@ -163,6 +163,15 @@ def initialize_image_parts(part_width, part_height):
     return [black_part_bytes] * 128
 
 
+def initialize_image_parts(part_width, part_height):
+    black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
+    black_part_data = io.BytesIO()
+    black_part.save(black_part_data, format='JPEG', quality=30, optimize=True)
+    black_part_bytes = black_part_data.getvalue()
+
+    image_parts = [black_part_bytes] * 128
+    return image_parts, black_part_bytes
+
 def receive_screenshot(image_parts):
     # i took down the part of checking the orded of the packets - the reason is: the deiffrence between the speed
 
