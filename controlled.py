@@ -199,33 +199,22 @@ def divide_image(image):
 
 
 #added now
-def encode_jpeg_under_limit(img, max_bytes):
-    quality = 70
-
-    while quality >= 20:
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=quality, optimize=True)
-        data = buf.getvalue()
-
-        if len(data) <= max_bytes:
-            return data, quality
-
-        quality -= 10
-
-    # fallback אחרון
+def encode_image_part(part):
+    # ניסיון ראשון – איכות רגילה
     buf = io.BytesIO()
-    img.save(buf, format="JPEG", quality=20, optimize=True)
+    part.save(buf, format="JPEG", quality=50, optimize=True)
     data = buf.getvalue()
 
-    # אם עדיין גדול (נדיר), חותכים (עדיף מאשר קריסה/fragmentation)
-    return data[:max_bytes], 20
+    if len(data) <= MAX_IMAGE_BYTES:
+        return data
 
+    # ניסיון שני – איכות נמוכה יותר
+    buf = io.BytesIO()
+    part.save(buf, format="JPEG", quality=30, optimize=True)
+    data = buf.getvalue()
 
-#added now
-def encode_image_part(part):
-    data, q = encode_jpeg_under_limit(part, MAX_IMAGE_BYTES)
+    # גם אם זה קצת גדול – מחזירים כמו שזה (נדיר מאוד)
     return data
-
 
 #try to make screen soc tcp when sending 1 byte
 # def send_screenshot():
@@ -247,15 +236,14 @@ def send_screenshot():
     while True:
         screenshot = ImageGrab.grab()
         image_parts = divide_image(screenshot)
-        encoded_parts = [encode_image_part(part) for part in image_parts]
 
-        for idx, part in enumerate(encoded_parts):
-            packet = f"{idx:03}".encode() + part
+        for idx, part in enumerate(image_parts):
+            encoded = encode_image_part(part)
+            packet = f"{idx:03}".encode() + encoded
             screenSoc.sendto(packet, (HOST, UDP_PORT))
 
         screenSoc.sendto(b"1", (HOST, UDP_PORT))
-        time.sleep(0.01)
-
+        time.sleep(0.01)  # FPS cap
 
 if __name__ == "__main__":
     # threads for key, mouse:
