@@ -282,7 +282,16 @@ def handle_Screenshots():
         receive_screenshot(image_parts)
 
         # נשתמש בגודל אמיתי מהחלק הראשון שהגיע
-        first = Image.open(io.BytesIO(image_parts[0]))
+        first_part_bytes = None
+        for p in image_parts:
+            if p:
+                first_part_bytes = p
+                break
+
+        if first_part_bytes is None:
+            continue  # לא הגיע שום חלק בפריים הזה
+
+        first = Image.open(io.BytesIO(first_part_bytes))
         part_width, part_height = first.size
 
         default_part_bytes = make_black_part_bytes(part_width, part_height)
