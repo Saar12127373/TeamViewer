@@ -254,8 +254,11 @@ def load_screenshot(image_parts, default_part_bytes):
     
 # added now
 def handle_Screenshots():
-    part_width, part_height = 1920 // 16, 1080 // 8
+    rows, cols = 8, 16
 
+    screen_w, screen_h = get_screen_resolution()
+    part_width = screen_w // cols
+    part_height = screen_h // rows
     while True:
         image_parts, default_part_bytes = initialize_image_parts(part_width, part_height)
 
