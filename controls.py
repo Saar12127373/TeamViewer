@@ -189,8 +189,6 @@ def receive_screenshot(image_parts):
         part_index = int(part_id)
         image_parts[part_index] = part_data
 
-first = Image.open(io.BytesIO(image_parts[0]))
-print("part size:", first.size)
 
 
 # def load_screenshot(image_parts):
