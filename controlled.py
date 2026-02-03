@@ -183,10 +183,15 @@ def divide_image(image):
 
     return parts
 
+# def encode_image_part(part):
+#     byte_arr = io.BytesIO()
+#     part.save(byte_arr, format='PNG')
+#     return byte_arr.getvalue()
 def encode_image_part(part):
     byte_arr = io.BytesIO()
-    part.save(byte_arr, format='PNG')
+    part.save(byte_arr, format="JPEG", quality=60, optimize=True)
     return byte_arr.getvalue()
+
 
 #try to make screen soc tcp when sending 1 byte
 def send_screenshot():
