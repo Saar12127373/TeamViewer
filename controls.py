@@ -253,6 +253,13 @@ def load_screenshot(image_parts, default_part_bytes):
 #         load_screenshot(image_parts)
     
 # added now
+
+def make_black_part_bytes(part_width, part_height):
+    black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
+    buf = io.BytesIO()
+    black_part.save(buf, format='JPEG', quality=30, optimize=True)
+    return buf.getvalue()
+
 def handle_Screenshots():
     rows, cols = 8, 16
 
