@@ -225,22 +225,33 @@ def encode_jpeg_under_limit(img, max_bytes):
     return data[:max_bytes], 20
 
 #try to make screen soc tcp when sending 1 byte
+# def send_screenshot():
+#     while True:    
+#         screenshot = ImageGrab.grab()     
+#         image_parts = divide_image(screenshot)
+#         encoded_parts = [encode_image_part(part) for part in image_parts]
+
+#         for idx, part in enumerate(encoded_parts):
+#             packet = f"{idx:03}".encode() + part
+
+#             screenSoc.sendto(packet, (HOST, UDP_PORT))
+
+#         screenSoc.sendto(b"1", (HOST, UDP_PORT))
+#         cv2.waitKey(4)
+
+## adding now
 def send_screenshot():
-    while True:    
-        screenshot = ImageGrab.grab()     
+    while True:
+        screenshot = ImageGrab.grab()
         image_parts = divide_image(screenshot)
         encoded_parts = [encode_image_part(part) for part in image_parts]
 
         for idx, part in enumerate(encoded_parts):
             packet = f"{idx:03}".encode() + part
-
             screenSoc.sendto(packet, (HOST, UDP_PORT))
 
         screenSoc.sendto(b"1", (HOST, UDP_PORT))
-        cv2.waitKey(4)
-
-
-
+        time.sleep(0.01)
 
 
 if __name__ == "__main__":
