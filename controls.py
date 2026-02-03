@@ -154,15 +154,15 @@ def mouse_managment():
 
 
 # Initialize with black image parts
-def initialize_image_parts(part_width, part_height):
-    black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
-    black_part_data = io.BytesIO()
-    black_part.save(black_part_data, format='JPEG')
-    black_part_bytes = black_part_data.getvalue()
+# def initialize_image_parts(part_width, part_height):
+#     black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
+#     black_part_data = io.BytesIO()
+#     black_part.save(black_part_data, format='JPEG')
+#     black_part_bytes = black_part_data.getvalue()
     
-    return [black_part_bytes] * 128
+#     return [black_part_bytes] * 128
 
-
+# added now
 def initialize_image_parts(part_width, part_height):
     black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
     black_part_data = io.BytesIO()
@@ -208,7 +208,7 @@ def receive_screenshot(image_parts):
 #     cv2.imshow('Live Video', cv_image)
 #     cv2.waitKey(4)
 
-
+#added now
 def load_screenshot(image_parts, default_part_bytes):
     parts = []
     for part in image_parts:
@@ -239,18 +239,28 @@ def load_screenshot(image_parts, default_part_bytes):
 
 
 
-def handle_Screenshots():
-    part_width, part_height = 1920 // 16, 1080 // 8  # Adjust based on image part sizes
-    while True:
+# def handle_Screenshots():
+#     part_width, part_height = 1920 // 16, 1080 // 8  # Adjust based on image part sizes
+#     while True:
  
-        image_parts = initialize_image_parts(part_width, part_height)
+#         image_parts = initialize_image_parts(part_width, part_height)
 
-        # Receive screenshots
+#         # Receive screenshots
+#         receive_screenshot(image_parts)
+
+#         # Process and display the received screenshot
+#         load_screenshot(image_parts)
+    
+# added now
+def handle_Screenshots():
+    part_width, part_height = 1920 // 16, 1080 // 8
+
+    while True:
+        image_parts, default_part_bytes = initialize_image_parts(part_width, part_height)
+
         receive_screenshot(image_parts)
 
-        # Process and display the received screenshot
-        load_screenshot(image_parts)
-    
+        load_screenshot(image_parts, default_part_bytes)
 
 # Create threads for each function so they both will work at the same time:
 
