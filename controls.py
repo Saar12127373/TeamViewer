@@ -181,10 +181,35 @@ def receive_screenshot(image_parts):
         image_parts[part_index] = part_data
 
 
-def load_screenshot(image_parts):
-    parts = [Image.open(io.BytesIO(part)) for part in image_parts]
+# def load_screenshot(image_parts):
+#     parts = [Image.open(io.BytesIO(part)) for part in image_parts]
 
-    # Ensure the width and height calculations match image layout
+#     # Ensure the width and height calculations match image layout
+#     part_width, part_height = parts[0].size
+#     width, height = part_width * 16, part_height * 8
+
+#     full_image = Image.new('RGB', (width, height))
+
+#     for i in range(8):
+#         for j in range(16):
+#             full_image.paste(parts[i * 16 + j], (j * part_width, i * part_height))
+
+#     cv_image = np.array(full_image)
+#     cv_image = cv_image[:, :, ::-1]  # from RGB to BGR
+#     cv2.imshow('Live Video', cv_image)
+#     cv2.waitKey(4)
+
+
+def load_screenshot(image_parts, default_part_bytes):
+    parts = []
+    for part in image_parts:
+        try:
+            img = Image.open(io.BytesIO(part))
+            parts.append(img)
+        except:
+            img = Image.open(io.BytesIO(default_part_bytes))
+            parts.append(img)
+
     part_width, part_height = parts[0].size
     width, height = part_width * 16, part_height * 8
 
@@ -195,9 +220,13 @@ def load_screenshot(image_parts):
             full_image.paste(parts[i * 16 + j], (j * part_width, i * part_height))
 
     cv_image = np.array(full_image)
-    cv_image = cv_image[:, :, ::-1]  # from RGB to BGR
+    cv_image = cv_image[:, :, ::-1]
     cv2.imshow('Live Video', cv_image)
-    cv2.waitKey(4)
+    cv2.waitKey(1)
+
+
+
+
 
 
 
