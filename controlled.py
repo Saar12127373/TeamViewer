@@ -187,11 +187,35 @@ def divide_image(image):
 #     byte_arr = io.BytesIO()
 #     part.save(byte_arr, format='PNG')
 #     return byte_arr.getvalue()
+
+
+#added now
 def encode_image_part(part):
     byte_arr = io.BytesIO()
     part.save(byte_arr, format="JPEG", quality=60, optimize=True)
     return byte_arr.getvalue()
 
+#added now
+def encode_jpeg_under_limit(img, max_bytes):
+    quality = 70
+
+    while quality >= 20:
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=quality, optimize=True)
+        data = buf.getvalue()
+
+        if len(data) <= max_bytes:
+            return data, quality
+
+        quality -= 10
+
+    # fallback אחרון
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=20, optimize=True)
+    data = buf.getvalue()
+
+    # אם עדיין גדול (נדיר), חותכים (עדיף מאשר קריסה/fragmentation)
+    return data[:max_bytes], 20
 
 #try to make screen soc tcp when sending 1 byte
 def send_screenshot():
