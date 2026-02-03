@@ -199,11 +199,6 @@ def divide_image(image):
 
 
 #added now
-def encode_image_part(part):
-    data, q = encode_jpeg_under_limit(part, MAX_IMAGE_BYTES)
-    return data
-
-#added now
 def encode_jpeg_under_limit(img, max_bytes):
     quality = 70
 
@@ -224,6 +219,13 @@ def encode_jpeg_under_limit(img, max_bytes):
 
     # אם עדיין גדול (נדיר), חותכים (עדיף מאשר קריסה/fragmentation)
     return data[:max_bytes], 20
+
+
+#added now
+def encode_image_part(part):
+    data, q = encode_jpeg_under_limit(part, MAX_IMAGE_BYTES)
+    return data
+
 
 #try to make screen soc tcp when sending 1 byte
 # def send_screenshot():
