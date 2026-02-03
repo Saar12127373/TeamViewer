@@ -17,6 +17,14 @@ HOST = "10.0.0.30"
 TCP_PORT = 8090
 UDP_PORT = 8091
 
+
+#constants
+MAX_UDP_PAYLOAD = 1200
+PART_ID_LEN = 3  # "000"
+MAX_IMAGE_BYTES = MAX_UDP_PAYLOAD - PART_ID_LEN
+
+
+
 def recv_all(length, client_sock):
     content = b""
     while(length > 0):
@@ -191,9 +199,8 @@ def divide_image(image):
 
 #added now
 def encode_image_part(part):
-    byte_arr = io.BytesIO()
-    part.save(byte_arr, format="JPEG", quality=60, optimize=True)
-    return byte_arr.getvalue()
+    data, q = encode_jpeg_under_limit(part, MAX_IMAGE_BYTES)
+    return data
 
 #added now
 def encode_jpeg_under_limit(img, max_bytes):
