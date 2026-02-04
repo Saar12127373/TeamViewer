@@ -282,6 +282,8 @@ def make_black_part_bytes(part_width, part_height):
 
 #changed
 def handle_Screenshots():
+    cv2.namedWindow('Live Video', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('Live Video', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     while True:
         # זמני: נכין רשימה ריקה (או עם bytes ריקים)
         image_parts = [b""] * 128
