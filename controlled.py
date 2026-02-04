@@ -117,8 +117,21 @@ def key_events():
                 recieve_key = recv_all(recieve_key_len, keySoc).decode()
                 keyboard.release(recieve_key)
 
-    # recieve all movements and do them yourself
+# recieve all movements and do them yourself
  
+def do_mouse_down(button_event):
+    if button_event == b"3":  # left
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
+    elif button_event == b"4":  # right
+        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0)
+
+
+def do_mouse_up(button_event):
+    if button_event == b"3":  # left
+        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
+    elif button_event == b"4":  # right
+        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0)
+
 
 def mouse_handeling():
     # for some reason its not exacly the width and heigh it should be
@@ -140,29 +153,25 @@ def mouse_handeling():
             win32api.SetCursorPos((mapped_x, mapped_y))
     
 
-        elif mouse_action == b"1":
-            
+        elif mouse_action == b"1":  # down
             button_event = recv_all(1, mouseSoc)
-            packed_data = recv_all(4, mouseSoc) # recive 2 bytes for x and 2 bytes for y
+            packed_data = recv_all(4, mouseSoc)
             x, y = struct.unpack('hh', packed_data)
 
-            if button_event == b"3":
-                button = "left"
-            elif button_event == b"4":
-                button = "right"
-            pyautogui.mouseDown(mapped_x, mapped_y, button=button)
+            mapped_x = int(x * (client_res[0] / server_res[0]))
+            mapped_y = int(y * (client_res[1] / server_res[1]))
+            win32api.SetCursorPos((mapped_x, mapped_y))
+            do_mouse_down(button_event)
 
-        elif mouse_action == b"2":
+        elif mouse_action == b"2":  # up
             button_event = recv_all(1, mouseSoc)
-            packed_data = recv_all(4, mouseSoc) # recive 2 bytes for x and 2 bytes for y
+            packed_data = recv_all(4, mouseSoc)
             x, y = struct.unpack('hh', packed_data)
 
-            if button_event == b"3":
-                button = "left"
-            elif button_event == b"4":
-                button = "right"
-            pyautogui.mouseUp(mapped_x,mapped_y, button=button)
-
+            mapped_x = int(x * (client_res[0] / server_res[0]))
+            mapped_y = int(y * (client_res[1] / server_res[1]))
+            win32api.SetCursorPos((mapped_x, mapped_y))
+            do_mouse_up(button_event)
 
 def divide_image(image):
     width, height = image.size
