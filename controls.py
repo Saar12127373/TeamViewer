@@ -142,7 +142,6 @@ def send_cords(x,y):
         #sending cords, also being able to send negative
         packed_data = struct.pack('hh', x, y)
         mouse_soc.sendall(packed_data)
-        print(x,y)
         time.sleep(0.01)
 
 
