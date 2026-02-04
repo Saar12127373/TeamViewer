@@ -13,7 +13,7 @@ import numpy as np
 
 
 
-
+# dpi aware so pixels will be exact even if screen isn't 100 pres as deafult
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2) 
