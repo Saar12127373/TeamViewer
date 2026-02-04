@@ -45,7 +45,7 @@ print("Server is listening!")
 # client addr is the ip and port 
         
 key_sock, client_addr1 = soc.accept()
-
+    
 mouse_soc, client_addr2 = soc.accept()
 
 # Create UDP socket for screenshots
