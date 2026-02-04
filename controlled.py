@@ -217,13 +217,14 @@ def send_screenshot():
         for idx, part in enumerate(image_parts):
             encoded = encode_image_part(part)
             packet = f"{idx:03}".encode() + encoded
+
+            if len(packet) > MAX_UDP_PAYLOAD:
+                print("BIG PACKET:", len(packet))
+
             screenSoc.sendto(packet, (HOST, UDP_PORT))
 
-        if len(packet) > MAX_UDP_PAYLOAD:
-            print("BIG PACKET:", len(packet))
-            
         screenSoc.sendto(b"1", (HOST, UDP_PORT))
-        time.sleep(0.01)  # FPS cap
+        time.sleep(0.01)
 
 if __name__ == "__main__":
     # threads for key, mouse:
