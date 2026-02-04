@@ -1,9 +1,6 @@
 # server side:
 
 
-
-
-
 import struct
 import socket
 import keyboard 
