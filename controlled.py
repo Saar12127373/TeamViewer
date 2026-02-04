@@ -11,7 +11,7 @@ from PIL import ImageGrab
 import io
 
 
-HOST = "10.0.0.30"
+HOST = "192.168.1.127"
 TCP_PORT = 8090
 UDP_PORT = 8091
 
