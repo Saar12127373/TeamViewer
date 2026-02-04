@@ -1,3 +1,4 @@
+# client side
 import socket
 import win32api
 import win32con
