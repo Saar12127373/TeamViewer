@@ -12,6 +12,22 @@ import cv2
 import numpy as np
 
 
+
+
+
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2) 
+except:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except:
+        pass
+
+
+
+
+
+
 HOST = ""
 PORT = 8090
 UDP_PORT = 8091
