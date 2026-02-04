@@ -1,18 +1,5 @@
 # server side:
 
-# קנה מידה
-# dpi (display scaling) aware so pixels will be exact even if screen isn't 100 pres as deafult
-
-import ctypes
-
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2) 
-except:
-    try:
-        ctypes.windll.user32.SetProcessDPIAware()
-    except:
-        pass
-
 
 
 
@@ -20,6 +7,7 @@ except:
 import struct
 import socket
 import keyboard 
+import ctypes
 import time
 from threading import Thread
 from pynput import mouse
