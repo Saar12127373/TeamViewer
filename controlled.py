@@ -6,7 +6,6 @@ import keyboard
 import ctypes
 from threading import Thread
 import time
-import pyautogui
 import struct
 from PIL import ImageGrab
 import io
