@@ -11,6 +11,18 @@ from PIL import ImageGrab
 import io
 
 
+
+try:
+    ctypes.windll.shcore.SetProcessDpiAwareness(2) 
+except:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except:
+        pass
+
+
+
+
 HOST = "192.168.1.127"
 TCP_PORT = 8090
 UDP_PORT = 8091
