@@ -24,7 +24,7 @@ except:
 
 
 
-HOST = "192.168.1.127"
+HOST = "192.168.1.129"
 TCP_PORT = 8090
 UDP_PORT = 8091
 
