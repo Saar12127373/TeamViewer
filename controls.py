@@ -1,4 +1,8 @@
+
 # server side:
+
+
+
 
 
 import struct
@@ -63,6 +67,30 @@ def keyTo_scanCode(key):
     
 
 
+
+
+# this kind of way isnt possible, the only way i found out possible is to know where to click in the keyboard
+
+# def keyDown(event):
+    # Sending choice for key down
+    # client_sock.sendall(b"1")
+
+    # # vk = 0
+    # key=0
+    # try:
+    #     key = event.name
+    #     sliced = key.find("_")
+    #     if sliced != -1:
+    #         key = key[:sliced]
+    #     # vk = event.value.vk
+    # except:
+    #     key = event.char
+    #     # vk = event.vk
+    # client_sock.sendall(len(key).to_bytes(1, "big"))
+    # print(f"Key down: {key}")
+    # client_sock.sendall(key.encode())
+
+
 def get_screen_resolution():
     user32 = ctypes.windll.user32
     screen_width = user32.GetSystemMetrics(0)  # SM_CXSCREEN
@@ -104,7 +132,6 @@ def keyBoard_Events():
 def on_move(x, y):
     mouse_soc.sendall(b"0")  # Indicate a movement event
     send_cords(x, y)
-    time.sleep(0.01)
 
 
 def on_click(x, y, button, pressed):
@@ -137,6 +164,16 @@ def mouse_managment():
         listener.join()
 
 
+# Initialize with black image parts
+# def initialize_image_parts(part_width, part_height):
+#     black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
+#     black_part_data = io.BytesIO()
+#     black_part.save(black_part_data, format='JPEG')
+#     black_part_bytes = black_part_data.getvalue()
+    
+#     return [black_part_bytes] * 128
+
+# added now
 def initialize_image_parts(part_width, part_height):
     black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
     black_part_data = io.BytesIO()
@@ -164,6 +201,24 @@ def receive_screenshot(image_parts):
         image_parts[part_index] = part_data
 
 
+
+# def load_screenshot(image_parts):
+#     parts = [Image.open(io.BytesIO(part)) for part in image_parts]
+
+#     # Ensure the width and height calculations match image layout
+#     part_width, part_height = parts[0].size
+#     width, height = part_width * 16, part_height * 8
+
+#     full_image = Image.new('RGB', (width, height))
+
+#     for i in range(8):
+#         for j in range(16):
+#             full_image.paste(parts[i * 16 + j], (j * part_width, i * part_height))
+
+#     cv_image = np.array(full_image)
+#     cv_image = cv_image[:, :, ::-1]  # from RGB to BGR
+#     cv2.imshow('Live Video', cv_image)
+#     cv2.waitKey(4)
 
 #added now
 def load_screenshot(image_parts, default_part_bytes):
@@ -196,6 +251,19 @@ def load_screenshot(image_parts, default_part_bytes):
 
 
 
+# def handle_Screenshots():
+#     part_width, part_height = 1920 // 16, 1080 // 8  # Adjust based on image part sizes
+#     while True:
+ 
+#         image_parts = initialize_image_parts(part_width, part_height)
+
+#         # Receive screenshots
+#         receive_screenshot(image_parts)
+
+#         # Process and display the received screenshot
+#         load_screenshot(image_parts)
+    
+# added now
 
 def make_black_part_bytes(part_width, part_height):
     black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
@@ -203,10 +271,21 @@ def make_black_part_bytes(part_width, part_height):
     black_part.save(buf, format='JPEG', quality=30, optimize=True)
     return buf.getvalue()
 
+# def handle_Screenshots():
+#     rows, cols = 8, 16
 
+#     screen_w, screen_h = get_screen_resolution()
+#     part_width = screen_w // cols
+#     part_height = screen_h // rows
+#     while True:
+#         image_parts, default_part_bytes = initialize_image_parts(part_width, part_height)
+
+#         receive_screenshot(image_parts)
+
+#         load_screenshot(image_parts, default_part_bytes)
+
+#changed
 def handle_Screenshots():
-    cv2.namedWindow('Live Video', cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty('Live Video', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     while True:
         # זמני: נכין רשימה ריקה (או עם bytes ריקים)
         image_parts = [b""] * 128
