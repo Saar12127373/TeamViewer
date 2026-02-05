@@ -104,6 +104,7 @@ def keyBoard_Events():
 def on_move(x, y):
     mouse_soc.sendall(b"0")  # Indicate a movement event
     send_cords(x, y)
+    time.sleep(0.01)
 
 
 def on_click(x, y, button, pressed):
