@@ -1,284 +1,202 @@
-# client side
-import socket
-import win32api
-import win32con
-import keyboard
-import ctypes
-from threading import Thread
-import time
 import struct
-from PIL import ImageGrab
+import socket
+import ctypes
+import time
 import io
+from threading import Thread
+from pynput import mouse as pynput_mouse
+from pynput import keyboard as pynput_keyboard
+from PIL import Image
+import cv2
+import numpy as np
 
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2) 
-except:
-    try:
-        ctypes.windll.user32.SetProcessDPIAware()
-    except:
-        pass
-
-
-
-
-HOST = "192.168.1.129"
+# --- הגדרות תקשורת ---
+HOST = "0.0.0.0" # מאזין לכל הכתובות
 TCP_PORT = 8090
 UDP_PORT = 8091
 
+# משתנים גלובליים לניהול Listeners וסגירה
+mouse_listener_global = None
+running = True
 
-#constants
-MAX_UDP_PAYLOAD = 1400
-PART_ID_LEN = 3  # "000"
-MAX_IMAGE_BYTES = MAX_UDP_PAYLOAD - PART_ID_LEN
+# --- פונקציות עזר ---
 
+def keyTo_scanCode(key):
+    """המרת תו ל-Virtual Key Code עבור הלקוח"""
+    try:
+        result = ctypes.windll.User32.VkKeyScanW(ord(key))
+        return result & 0xFF
+    except:
+        return 0
 
+def send_cords(sock, x, y):
+    """שליחת קואורדינטות בפורמט של 4 בייטים (2 לכל ציר)"""
+    try:
+        packed_data = struct.pack('hh', int(x), int(y))
+        sock.sendall(packed_data)
+    except:
+        pass
 
-def recv_all(length, client_sock):
-    content = b""
-    while(length > 0):
-        tempContent = client_sock.recv(length)
-        length -= len(tempContent)
-        content += tempContent
-    return content
+# --- ניהול מקלדת ---
 
+def keyBoard_Events(key_sock):
+    global running, mouse_listener_global
 
-
-
-keySoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-keySoc.connect((HOST, TCP_PORT))
-
-
-mouseSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-mouseSoc.connect((HOST, TCP_PORT))
-
-screenSoc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-
-print("server connectes! ")
-
-
-
-server_width = int.from_bytes(recv_all(2, mouseSoc), "big")
-server_heigh = int.from_bytes(recv_all(2, mouseSoc), "big")
-
-def get_screen_resolution():
-    user32 = ctypes.windll.user32
-    screen_width = user32.GetSystemMetrics(0)  
-    screen_height = user32.GetSystemMetrics(1)  
-    return screen_width, screen_height
-
-client_width, client_heigth = get_screen_resolution()
-
-
-# def key_events():
-#     while True:
-#         # Receive choice
-#         recieve_event = recv_all(1, keySoc)
-
-
-#         # keyboard press:
-#         if recieve_event == b"1":
-#             recieve_key_type = recv_all(1, keySoc)
-
-#             # not speacial char
-#             if(recieve_key_type == b"1"):
-                    
-#                 # Receive key press
-#                 scan_code = int.from_bytes(recv_all(1, keySoc), "big")
-#                 win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY, 0)
-
-            
-#             # special letter
-#             else:
-
-#                 recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
-
-#                 recieve_key = recv_all(recieve_key_len, keySoc).decode()
-#                 keyboard.press(recieve_key) 
-                
-            
-
-#         #  key released
-#         elif(recieve_event == b"2"):
-#             recieve_key_type = recv_all(1, keySoc)
-
-#             # not speacial letter
-#             if(recieve_key_type == b"1"):
-                    
-#                 scan_code_len = int.from_bytes(recv_all(1, keySoc), "big")
-#                 win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
-            
-#             else:
-#                 # special letter
-#                 recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
-
-#                 recieve_key = recv_all(recieve_key_len, keySoc).decode()
-#                 keyboard.release(recieve_key)
-
-def key_events():
-    # מילון תרגום קריטי
-    translation = {
-        'alt_l': 'alt', 'alt_r': 'alt gr',
-        'ctrl_l': 'ctrl', 'ctrl_r': 'ctrl',
-        'shift_l': 'shift', 'shift_r': 'shift',
-        'cmd': 'windows', 'caps_lock': 'caps lock',
-        'enter': 'enter', 'esc': 'esc', 'space': 'space'
-    }
-
-    while True:
-        event_type = recv_all(1, keySoc) # 1=Down, 2=Up
-        key_mode = recv_all(1, keySoc)   # 1=Char, 2=Special
-
-        if key_mode == b"1":
-            scan_code = int.from_bytes(recv_all(1, keySoc), "big")
-            flag = 0 if event_type == b"1" else win32con.KEYEVENTF_KEYUP
-            win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY | flag, 0)
-        else:
-            name_len = int.from_bytes(recv_all(1, keySoc), "big")
-            name = recv_all(name_len, keySoc).decode()
-            
-            # תרגום שם המקש
-            final_name = translation.get(name, name)
-            
-            if event_type == b"1":
-                keyboard.press(final_name)
+    def on_press(key):
+        global running
+        if key == pynput_keyboard.Key.f12:
+            print("\n[!] F12 Pressed - Shutting down server...")
+            running = False
+            if mouse_listener_global:
+                mouse_listener_global.stop()
+            return False # סוגר את ה-Listener של המקלדת
+        
+        try:
+            if hasattr(key, 'char') and key.char is not None:
+                # מקש רגיל
+                key_sock.sendall(b"1") # Down
+                key_sock.sendall(b"1") # Mode: Char
+                scan_code = keyTo_scanCode(key.char)
+                key_sock.sendall(int(scan_code).to_bytes(1, "big"))
             else:
-                keyboard.release(final_name)
+                # מקש מיוחד (Alt, Ctrl, וכו')
+                name = str(key).replace('Key.', '')
+                key_sock.sendall(b"1") # Down
+                key_sock.sendall(b"2") # Mode: Special
+                key_sock.sendall(len(name).to_bytes(1, "big"))
+                key_sock.sendall(name.encode())
+        except Exception as e:
+            print(f"Key Press Error: {e}")
 
+    def on_release(key):
+        if not running: return False
+        try:
+            if hasattr(key, 'char') and key.char is not None:
+                key_sock.sendall(b"2") # Up
+                key_sock.sendall(b"1") # Mode: Char
+                scan_code = keyTo_scanCode(key.char)
+                key_sock.sendall(int(scan_code).to_bytes(1, "big"))
+            else:
+                name = str(key).replace('Key.', '')
+                key_sock.sendall(b"2") # Up
+                key_sock.sendall(b"2") # Mode: Special
+                key_sock.sendall(len(name).to_bytes(1, "big"))
+                key_sock.sendall(name.encode())
+        except:
+            pass
 
-# recieve all movements and do them yourself
- 
-def do_mouse_down(button_event):
-    if button_event == b"3":  # left
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0)
-    elif button_event == b"4":  # right
-        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTDOWN, 0, 0, 0, 0)
+    with pynput_keyboard.Listener(on_press=on_press, on_release=on_release, suppress=True) as listener:
+        listener.join()
 
+# --- ניהול עכבר ---
 
-def do_mouse_up(button_event):
-    if button_event == b"3":  # left
-        win32api.mouse_event(win32con.MOUSEEVENTF_LEFTUP, 0, 0, 0, 0)
-    elif button_event == b"4":  # right
-        win32api.mouse_event(win32con.MOUSEEVENTF_RIGHTUP, 0, 0, 0, 0)
+def mouse_management(mouse_sock):
+    global mouse_listener_global, running
 
+    def on_move(x, y):
+        if not running: return False
+        try:
+            mouse_sock.sendall(b"0") # Movement ID
+            send_cords(mouse_sock, x, y)
+        except: pass
 
-def mouse_handeling():
-    # for some reason its not exacly the width and heigh it should be
-        #server_res = (server_width, server_heigh)
-    server_res = (server_width, server_heigh)
-    client_res = (client_width, client_heigth)
+    def on_click(x, y, button, pressed):
+        if not running: return False
+        try:
+            mouse_sock.sendall(b"1" if pressed else b"2") # Click/Release
+            btn = b"3" if button == pynput_mouse.Button.left else b"4"
+            mouse_sock.sendall(btn)
+            send_cords(mouse_sock, x, y)
+        except: pass
 
-    while True:
-        mouse_action = recv_all(1, mouseSoc)
+    mouse_listener_global = pynput_mouse.Listener(on_move=on_move, on_click=on_click, suppress=True)
+    with mouse_listener_global as listener:
+        listener.join()
 
-        if mouse_action == b"0":  # Movement
-            packed_data = recv_all(4, mouseSoc) # recive 2 bytes for x and 2 bytes for y
-            control_com_x_Cords, control_com_y_Cords = struct.unpack('hh', packed_data)
+# --- ניהול מסך (Video Stream) ---
 
-            # Scale coordinates based on the resolution difference
-            mapped_x = int(control_com_x_Cords * (client_res[0] / server_res[0]))
-            mapped_y = int(control_com_y_Cords * (client_res[1] / server_res[1]))
-            time.sleep(0.01)
-            win32api.SetCursorPos((mapped_x, mapped_y))
-    
+def receive_screenshot(screen_soc, image_parts):
+    while running:
+        try:
+            data, addr = screen_soc.recvfrom(65535)
+            if data == b"1": # סוף פריים
+                break
+            
+            part_index = int(data[:3].decode())
+            image_parts[part_index] = data[3:]
+        except:
+            break
 
-        elif mouse_action == b"1":  # down
-            button_event = recv_all(1, mouseSoc)
-            packed_data = recv_all(4, mouseSoc)
-            x, y = struct.unpack('hh', packed_data)
+def handle_screenshots(screen_soc):
+    cv2.namedWindow('Live Video', cv2.WINDOW_NORMAL)
+    while running:
+        image_parts = [b""] * 128
+        receive_screenshot(screen_soc, image_parts)
 
-            mapped_x = int(x * (client_res[0] / server_res[0]))
-            mapped_y = int(y * (client_res[1] / server_res[1]))
-            win32api.SetCursorPos((mapped_x, mapped_y))
-            do_mouse_down(button_event)
+        # הרכבת התמונה
+        parts = []
+        try:
+            for p in image_parts:
+                if p:
+                    parts.append(Image.open(io.BytesIO(p)))
+            
+            if not parts: continue
 
-        elif mouse_action == b"2":  # up
-            button_event = recv_all(1, mouseSoc)
-            packed_data = recv_all(4, mouseSoc)
-            x, y = struct.unpack('hh', packed_data)
+            p_width, p_height = parts[0].size
+            full_img = Image.new('RGB', (p_width * 16, p_height * 8))
 
-            mapped_x = int(x * (client_res[0] / server_res[0]))
-            mapped_y = int(y * (client_res[1] / server_res[1]))
-            win32api.SetCursorPos((mapped_x, mapped_y))
-            do_mouse_up(button_event)
+            for i in range(8):
+                for j in range(16):
+                    idx = i * 16 + j
+                    if idx < len(image_parts) and image_parts[idx]:
+                        full_img.paste(Image.open(io.BytesIO(image_parts[idx])), (j * p_width, i * p_height))
 
-def divide_image(image):
-    width, height = image.size
-    parts = []
-    # Set grid size for 64 parts
-    rows, cols = 8, 16
-    # Calculate the size of each part
+            cv_img = cv2.cvtColor(np.array(full_img), cv2.COLOR_RGB2BGR)
+            cv2.imshow('Live Video', cv_img)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        except:
+            continue
+    cv2.destroyAllWindows()
 
-    part_width = width // cols
-    part_height = height // rows
-
-    for i in range(rows):
-        for j in range(cols):
-            left = j * part_width
-            top = i * part_height
-            right = (j + 1) * part_width
-            bottom = (i + 1) * part_height
-
-            # Adjust the last parts on the right and bottom edges
-            right = (j + 1) * part_width
-            bottom = (i + 1) * part_height
-
-            parts.append(image.crop((left, top, right, bottom)))
-
-    return parts
-
-
-
-#added now
-def encode_image_part(part):
-    buf = io.BytesIO()
-    part.save(buf, format="JPEG", quality=50, subsampling=2, optimize=True)
-    data = buf.getvalue()
-    if len(data) <= MAX_IMAGE_BYTES:
-        return data
-
-    buf = io.BytesIO()
-    part.save(buf, format="JPEG", quality=30, subsampling=2, optimize=True)
-    data = buf.getvalue()
-    if len(data) <= MAX_IMAGE_BYTES:
-        return data
-
-    buf = io.BytesIO()
-    part.save(buf, format="JPEG", quality=20, subsampling=2, optimize=True)
-    return buf.getvalue()
-
-def send_screenshot():
-    while True:
-        screenshot = ImageGrab.grab()
-        image_parts = divide_image(screenshot)
-
-        for idx, part in enumerate(image_parts):
-            encoded = encode_image_part(part)
-            packet = f"{idx:03}".encode() + encoded
-
-            if len(packet) > MAX_UDP_PAYLOAD:
-                print("BIG PACKET:", len(packet))
-
-            screenSoc.sendto(packet, (HOST, UDP_PORT))
-
-        screenSoc.sendto(b"1", (HOST, UDP_PORT))
-        time.sleep(0.01)
+# --- Main ---
 
 if __name__ == "__main__":
-    # threads for key, mouse:
-    key_thread = Thread(target=key_events)
-    mouse_thread = Thread(target=mouse_handeling)
-    screen_thread = Thread(target=send_screenshot)
+    main_soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    main_soc.bind((HOST, TCP_PORT))
+    main_soc.listen(2)
+    print(f"[*] Server started. Listening on {TCP_PORT}...")
 
-    key_thread.start()
-    mouse_thread.start()        
-    screen_thread.start()
+    # קבלת חיבורים
+    k_sock, _ = main_soc.accept()
+    print("[+] Keyboard Socket Connected")
+    m_sock, _ = main_soc.accept()
+    print("[+] Mouse Socket Connected")
 
-    key_thread.join()
-    mouse_thread.join()
-    screen_thread.join()
+    # שליחת רזולוציה ראשונית (לפי המסך שלך)
+    user32 = ctypes.windll.user32
+    m_sock.sendall(int(user32.GetSystemMetrics(0)).to_bytes(2, "big"))
+    m_sock.sendall(int(user32.GetSystemMetrics(1)).to_bytes(2, "big"))
 
-    #closing sockets:
-    keySoc.close()
-    mouseSoc.close()
-    screenSoc.close() 
+    screen_soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    screen_soc.bind((HOST, UDP_PORT))
+
+    # הפעלת Threads
+    threads = [
+        Thread(target=keyBoard_Events, args=(k_sock,)),
+        Thread(target=mouse_management, args=(m_sock,)),
+        Thread(target=handle_screenshots, args=(screen_soc,))
+    ]
+
+    for t in threads: t.start()
+    
+    # המתנה לסיום (F12)
+    threads[0].join() 
+    
+    # ניקוי
+    print("[*] Closing connections...")
+    k_sock.close()
+    m_sock.close()
+    screen_soc.close()
+    main_soc.close()
+    print("[+] System offline.")
