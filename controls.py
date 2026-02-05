@@ -79,33 +79,73 @@ mouse_soc.sendall(int(server_width).to_bytes(2, "big"))
 mouse_soc.sendall(int(server_heigth).to_bytes(2, "big"))
 
 
-def keyBoard_Events():
-    while True:
-        event = keyboard.read_event()
-        event_type = event.event_type
-        event_name = event.name
+# def keyBoard_Events():
+#     while True:
+#         event = keyboard.read_event()
+#         event_type = event.event_type
+#         event_name = event.name
 
-        # key pressed
-        if event_type == "down":
-            key_sock.sendall(b"1")
-        # key released
-        elif event_type == "up":
-            key_sock.sendall(b"2")
+#         # key pressed
+#         if event_type == "down":
+#             key_sock.sendall(b"1")
+#         # key released
+#         elif event_type == "up":
+#             key_sock.sendall(b"2")
         
-        if len(event_name) == 1:
-            key_sock.sendall(b"1")
-            scan_code = keyTo_scanCode(event_name)
+#         if len(event_name) == 1:
+#             key_sock.sendall(b"1")
+#             scan_code = keyTo_scanCode(event_name)
 
-            key_sock.sendall(int(scan_code).to_bytes(1, "big"))
+#             key_sock.sendall(int(scan_code).to_bytes(1, "big"))
     
-        else:
-            key_sock.sendall(b"2")
-            key_sock.sendall(len(event_name).to_bytes(1, "big"))
-            key_sock.sendall(event_name.encode())
+#         else:
+#             key_sock.sendall(b"2")
+#             key_sock.sendall(len(event_name).to_bytes(1, "big"))
+#             key_sock.sendall(event_name.encode())
 
 
 
+def keyBoard_Events():
+    def on_press(key):
+        if key == pynput_keyboard.Key.f12:
+            return False # סוגר את ה-Listener ומשחרר את המקלדת
+        try:
+            if hasattr(key, 'char') and key.char is not None:
+                key_sock.sendall(b"1") # Type Down
+                key_sock.sendall(b"1") # Mode Char
+                scan_code = keyTo_scanCode(key.char)
+                key_sock.sendall(int(scan_code).to_bytes(1, "big"))
+            else:
+                # טיפול במקשים מיוחדים
+                event_name = str(key).replace('Key.', '')
+                key_sock.sendall(b"1") # Type Down
+                key_sock.sendall(b"2") # Mode Special
+                key_sock.sendall(len(event_name).to_bytes(1, "big"))
+                key_sock.sendall(event_name.encode())
+        except: pass
 
+    def on_release(key):
+        if key == pynput_keyboard.Key.f12: return False
+        try:
+            key_sock.sendall(b"2") # Type Up
+            if hasattr(key, 'char') and key.char is not None:
+                key_sock.sendall(b"1") # Mode Char
+                scan_code = keyTo_scanCode(key.char)
+                key_sock.sendall(int(scan_code).to_bytes(1, "big"))
+            else:
+                event_name = str(key).replace('Key.', '')
+                key_sock.sendall(b"2") # Mode Special
+                key_sock.sendall(len(event_name).to_bytes(1, "big"))
+                key_sock.sendall(event_name.encode())
+        except: pass
+
+    with pynput_keyboard.Listener(on_press=on_press, on_release=on_release, suppress=True) as listener:
+        listener.join()
+
+def mouse_managment():
+    # כאן ה-suppress גורם לכך שהעכבר המקומי שלך "נעלם" והוא רק שולח נתונים
+    with pynput_mouse.Listener(on_move=on_move, on_click=on_click, suppress=True) as listener:
+        listener.join()
 
 def on_move(x, y):
     mouse_soc.sendall(b"0")  # Indicate a movement event
