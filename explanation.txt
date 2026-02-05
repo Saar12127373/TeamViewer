@@ -10,3 +10,7 @@ using udp for faster output
 3. being able to control the victoms keyboard
 
 4. everything needs to work together - using threads for each part (1,2,3)
+
+
+
+please first run in the cmd the command: pip install -r requirements.txt
