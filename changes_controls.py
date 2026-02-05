@@ -78,7 +78,7 @@ mouse_soc.sendall(int(server_width).to_bytes(2, "big"))
 mouse_soc.sendall(int(server_heigth).to_bytes(2, "big"))
 
 def keyBoard_Events():
-    global running
+    global running, mouse_listener_global
     def on_press(key):
         global running
         if key == pynput_keyboard.Key.f12:
