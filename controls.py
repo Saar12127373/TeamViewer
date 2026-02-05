@@ -214,7 +214,7 @@ def handle_Screenshots():
 
         # נשתמש בגודל אמיתי מהחלק הראשון שהגיע
         first_part_bytes = None
-        for p in image_parts:
+        for p in image_parts:o
             if p:
                 first_part_bytes = p
                 break
