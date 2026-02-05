@@ -161,6 +161,14 @@ def keyBoard_Events():
 #         mouse_soc.sendall(b"4")  # Right button
     
 #     send_cords(x, y)
+
+
+
+# def mouse_managment():
+
+#     with mouse.Listener(on_move = on_move, on_click=on_click) as listener:
+#         listener.join()
+
 # --- MOUSE WITH SUPPRESS ---
 
 def mouse_managment():
@@ -186,10 +194,6 @@ def send_cords(x,y):
 
 
 
-def mouse_managment():
-
-    with mouse.Listener(on_move = on_move, on_click=on_click) as listener:
-        listener.join()
 
 
 def initialize_image_parts(part_width, part_height):
