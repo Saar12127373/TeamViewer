@@ -142,30 +142,40 @@ def keyBoard_Events():
     with pynput_keyboard.Listener(on_press=on_press, on_release=on_release, suppress=True) as listener:
         listener.join()
 
+
+# def on_move(x, y):
+#     mouse_soc.sendall(b"0")  # Indicate a movement event
+#     send_cords(x, y)
+
+
+# def on_click(x, y, button, pressed):
+#     if pressed:
+#         mouse_soc.sendall(b"1")  # Indicate a click event
+#     else:
+#         mouse_soc.sendall(b"2")  # Indicate a release event
+
+#     # Send button type 
+#     if button == mouse.Button.left:
+#         mouse_soc.sendall(b"3")  # Left button
+#     elif button == mouse.Button.right:
+#         mouse_soc.sendall(b"4")  # Right button
+    
+#     send_cords(x, y)
+# --- MOUSE WITH SUPPRESS ---
+
 def mouse_managment():
-    # כאן ה-suppress גורם לכך שהעכבר המקומי שלך "נעלם" והוא רק שולח נתונים
+    def on_move(x, y):
+        mouse_soc.sendall(b"0")
+        send_cords(x, y)
+
+    def on_click(x, y, button, pressed):
+        mouse_soc.sendall(b"1" if pressed else b"2")
+        btn = b"3" if button == pynput_mouse.Button.left else b"4"
+        mouse_soc.sendall(btn)
+        send_cords(x, y)
+
     with pynput_mouse.Listener(on_move=on_move, on_click=on_click, suppress=True) as listener:
         listener.join()
-
-def on_move(x, y):
-    mouse_soc.sendall(b"0")  # Indicate a movement event
-    send_cords(x, y)
-
-
-def on_click(x, y, button, pressed):
-    if pressed:
-        mouse_soc.sendall(b"1")  # Indicate a click event
-    else:
-        mouse_soc.sendall(b"2")  # Indicate a release event
-
-    # Send button type 
-    if button == mouse.Button.left:
-        mouse_soc.sendall(b"3")  # Left button
-    elif button == mouse.Button.right:
-        mouse_soc.sendall(b"4")  # Right button
-    
-    send_cords(x, y)
-
 
 def send_cords(x,y):
         # placment will always be between 1 -2 bytes so not worth sending length
