@@ -5,7 +5,7 @@ import struct
 import socket
 import keyboard 
 import ctypes
-import time
+import time 
 from threading import Thread
 from pynput import mouse
 from PIL import Image
