@@ -3,7 +3,6 @@
 
 import struct
 import socket
-import keyboard 
 import ctypes
 import time
 from threading import Thread
