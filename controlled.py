@@ -9,9 +9,6 @@ import time
 import struct
 from PIL import ImageGrab
 import io
-from pynput import keyboard as pynput_keyboard
-from pynput import mouse as pynput_mouse
-
 
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(2) 
