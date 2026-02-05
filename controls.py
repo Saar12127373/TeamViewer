@@ -79,50 +79,32 @@ mouse_soc.sendall(int(server_width).to_bytes(2, "big"))
 mouse_soc.sendall(int(server_heigth).to_bytes(2, "big"))
 
 
-# def keyBoard_Events():
-#     while True:
-#         event = keyboard.read_event()
-#         event_type = event.event_type
-#         event_name = event.name
-
-#         # key pressed
-#         if event_type == "down":
-#             key_sock.sendall(b"1")
-#         # key released
-#         elif event_type == "up":
-#             key_sock.sendall(b"2")
-        
-#         if len(event_name) == 1:
-#             key_sock.sendall(b"1")
-#             scan_code = keyTo_scanCode(event_name)
-
-#             key_sock.sendall(int(scan_code).to_bytes(1, "big"))
-    
-#         else:
-#             key_sock.sendall(b"2")
-#             key_sock.sendall(len(event_name).to_bytes(1, "big"))
-            # key_sock.sendall(event_name.encode())
-
-
-
 def keyBoard_Events():
-    def on_press(key):
-        if key == pynput_keyboard.Key.f12:
-            return False # סוגר את ה-Listener ומשחרר את המקלדת
-        try:
-            if hasattr(key, 'char') and key.char is not None:
-                key_sock.sendall(b"1") # Type Down
-                key_sock.sendall(b"1") # Mode Char
-                scan_code = keyTo_scanCode(key.char)
-                key_sock.sendall(int(scan_code).to_bytes(1, "big"))
-            else:
-                # טיפול במקשים מיוחדים
-                event_name = str(key).replace('Key.', '')
-                key_sock.sendall(b"1") # Type Down
-                key_sock.sendall(b"2") # Mode Special
-                key_sock.sendall(len(event_name).to_bytes(1, "big"))
-                key_sock.sendall(event_name.encode())
-        except: pass
+    while True:
+        event = keyboard.read_event()
+        event_type = event.event_type
+        event_name = event.name
+
+        # key pressed
+        if event_type == "down":
+            key_sock.sendall(b"1")
+        # key released
+        elif event_type == "up":
+            key_sock.sendall(b"2")
+        
+        if len(event_name) == 1:
+            key_sock.sendall(b"1")
+            scan_code = keyTo_scanCode(event_name)
+
+            key_sock.sendall(int(scan_code).to_bytes(1, "big"))
+    
+        else:
+            key_sock.sendall(b"2")
+            key_sock.sendall(len(event_name).to_bytes(1, "big"))
+            key_sock.sendall(event_name.encode())
+
+
+
 
 
 def on_move(x, y):
