@@ -192,7 +192,12 @@ def send_cords(x,y):
         mouse_soc.sendall(packed_data)
         time.sleep(0.01)
 
-
+def send_cords(x,y):
+    # placment will always be between 1 -2 bytes so not worth sending length
+    #sending cords, also being able to send negative
+    packed_data = struct.pack('hh', int(x), int(y))
+    mouse_soc.sendall(packed_data)
+    time.sleep(0.01)
 
 
 
