@@ -3,6 +3,7 @@
 
 import struct
 import socket
+import keyboard 
 import ctypes
 import time
 from threading import Thread
@@ -11,9 +12,6 @@ from PIL import Image
 import io
 import cv2
 import numpy as np
-
-from pynput import keyboard as pynput_keyboard
-from pynput import mouse as pynput_mouse
 
 
 
@@ -78,111 +76,50 @@ mouse_soc.sendall(int(server_width).to_bytes(2, "big"))
 mouse_soc.sendall(int(server_heigth).to_bytes(2, "big"))
 
 
-# def keyBoard_Events():
-#     while True:
-#         event = keyboard.read_event()
-#         event_type = event.event_type
-#         event_name = event.name
-
-#         # key pressed
-#         if event_type == "down":
-#             key_sock.sendall(b"1")
-#         # key released
-#         elif event_type == "up":
-#             key_sock.sendall(b"2")
-        
-#         if len(event_name) == 1:
-#             key_sock.sendall(b"1")
-#             scan_code = keyTo_scanCode(event_name)
-
-#             key_sock.sendall(int(scan_code).to_bytes(1, "big"))
-    
-#         else:
-#             key_sock.sendall(b"2")
-#             key_sock.sendall(len(event_name).to_bytes(1, "big"))
-#             key_sock.sendall(event_name.encode())
-
-
-
 def keyBoard_Events():
-    def on_press(key):
-        if key == pynput_keyboard.Key.f12:
-            return False # סוגר את ה-Listener ומשחרר את המקלדת
-        try:
-            if hasattr(key, 'char') and key.char is not None:
-                key_sock.sendall(b"1") # Type Down
-                key_sock.sendall(b"1") # Mode Char
-                scan_code = keyTo_scanCode(key.char)
-                key_sock.sendall(int(scan_code).to_bytes(1, "big"))
-            else:
-                # טיפול במקשים מיוחדים
-                event_name = str(key).replace('Key.', '')
-                key_sock.sendall(b"1") # Type Down
-                key_sock.sendall(b"2") # Mode Special
-                key_sock.sendall(len(event_name).to_bytes(1, "big"))
-                key_sock.sendall(event_name.encode())
-        except: pass
+    while True:
+        event = keyboard.read_event()
+        event_type = event.event_type
+        event_name = event.name
 
-    def on_release(key):
-        if key == pynput_keyboard.Key.f12: return False
-        try:
-            key_sock.sendall(b"2") # Type Up
-            if hasattr(key, 'char') and key.char is not None:
-                key_sock.sendall(b"1") # Mode Char
-                scan_code = keyTo_scanCode(key.char)
-                key_sock.sendall(int(scan_code).to_bytes(1, "big"))
-            else:
-                event_name = str(key).replace('Key.', '')
-                key_sock.sendall(b"2") # Mode Special
-                key_sock.sendall(len(event_name).to_bytes(1, "big"))
-                key_sock.sendall(event_name.encode())
-        except: pass
+        # key pressed
+        if event_type == "down":
+            key_sock.sendall(b"1")
+        # key released
+        elif event_type == "up":
+            key_sock.sendall(b"2")
+        
+        if len(event_name) == 1:
+            key_sock.sendall(b"1")
+            scan_code = keyTo_scanCode(event_name)
 
-    with pynput_keyboard.Listener(on_press=on_press, on_release=on_release, suppress=True) as listener:
-        listener.join()
-
-
-# def on_move(x, y):
-#     mouse_soc.sendall(b"0")  # Indicate a movement event
-#     send_cords(x, y)
-
-
-# def on_click(x, y, button, pressed):
-#     if pressed:
-#         mouse_soc.sendall(b"1")  # Indicate a click event
-#     else:
-#         mouse_soc.sendall(b"2")  # Indicate a release event
-
-#     # Send button type 
-#     if button == mouse.Button.left:
-#         mouse_soc.sendall(b"3")  # Left button
-#     elif button == mouse.Button.right:
-#         mouse_soc.sendall(b"4")  # Right button
+            key_sock.sendall(int(scan_code).to_bytes(1, "big"))
     
-#     send_cords(x, y)
+        else:
+            key_sock.sendall(b"2")
+            key_sock.sendall(len(event_name).to_bytes(1, "big"))
+            key_sock.sendall(event_name.encode())
 
 
+def on_move(x, y):
+    mouse_soc.sendall(b"0")  # Indicate a movement event
+    send_cords(x, y)
 
-# def mouse_managment():
 
-#     with mouse.Listener(on_move = on_move, on_click=on_click) as listener:
-#         listener.join()
+def on_click(x, y, button, pressed):
+    if pressed:
+        mouse_soc.sendall(b"1")  # Indicate a click event
+    else:
+        mouse_soc.sendall(b"2")  # Indicate a release event
 
-# --- MOUSE WITH SUPPRESS ---
+    # Send button type 
+    if button == mouse.Button.left:
+        mouse_soc.sendall(b"3")  # Left button
+    elif button == mouse.Button.right:
+        mouse_soc.sendall(b"4")  # Right button
+    
+    send_cords(x, y)
 
-def mouse_managment():
-    def on_move(x, y):
-        mouse_soc.sendall(b"0")
-        send_cords(x, y)
-
-    def on_click(x, y, button, pressed):
-        mouse_soc.sendall(b"1" if pressed else b"2")
-        btn = b"3" if button == pynput_mouse.Button.left else b"4"
-        mouse_soc.sendall(btn)
-        send_cords(x, y)
-
-    with pynput_mouse.Listener(on_move=on_move, on_click=on_click, suppress=True) as listener:
-        listener.join()
 
 def send_cords(x,y):
         # placment will always be between 1 -2 bytes so not worth sending length
@@ -191,13 +128,12 @@ def send_cords(x,y):
         mouse_soc.sendall(packed_data)
         time.sleep(0.01)
 
-def send_cords(x,y):
-    # placment will always be between 1 -2 bytes so not worth sending length
-    #sending cords, also being able to send negative
-    packed_data = struct.pack('hh', int(x), int(y))
-    mouse_soc.sendall(packed_data)
-    time.sleep(0.01)
 
+
+def mouse_managment():
+
+    with mouse.Listener(on_move = on_move, on_click=on_click) as listener:
+        listener.join()
 
 
 def initialize_image_parts(part_width, part_height):
