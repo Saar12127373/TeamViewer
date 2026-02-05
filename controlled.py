@@ -70,50 +70,81 @@ def get_screen_resolution():
 client_width, client_heigth = get_screen_resolution()
 
 
-def key_events():
-    while True:
-        # Receive choice
-        recieve_event = recv_all(1, keySoc)
+# def key_events():
+#     while True:
+#         # Receive choice
+#         recieve_event = recv_all(1, keySoc)
 
 
-        # keyboard press:
-        if recieve_event == b"1":
-            recieve_key_type = recv_all(1, keySoc)
+#         # keyboard press:
+#         if recieve_event == b"1":
+#             recieve_key_type = recv_all(1, keySoc)
 
-            # not speacial char
-            if(recieve_key_type == b"1"):
+#             # not speacial char
+#             if(recieve_key_type == b"1"):
                     
-                # Receive key press
-                scan_code = int.from_bytes(recv_all(1, keySoc), "big")
-                win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY, 0)
+#                 # Receive key press
+#                 scan_code = int.from_bytes(recv_all(1, keySoc), "big")
+#                 win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY, 0)
 
             
-            # special letter
-            else:
+#             # special letter
+#             else:
 
-                recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
+#                 recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
 
-                recieve_key = recv_all(recieve_key_len, keySoc).decode()
-                keyboard.press(recieve_key) 
+#                 recieve_key = recv_all(recieve_key_len, keySoc).decode()
+#                 keyboard.press(recieve_key) 
                 
             
 
-        #  key released
-        elif(recieve_event == b"2"):
-            recieve_key_type = recv_all(1, keySoc)
+#         #  key released
+#         elif(recieve_event == b"2"):
+#             recieve_key_type = recv_all(1, keySoc)
 
-            # not speacial letter
-            if(recieve_key_type == b"1"):
+#             # not speacial letter
+#             if(recieve_key_type == b"1"):
                     
-                scan_code_len = int.from_bytes(recv_all(1, keySoc), "big")
-                win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
+#                 scan_code_len = int.from_bytes(recv_all(1, keySoc), "big")
+#                 win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
             
-            else:
-                # special letter
-                recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
+#             else:
+#                 # special letter
+#                 recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
 
-                recieve_key = recv_all(recieve_key_len, keySoc).decode()
-                keyboard.release(recieve_key)
+#                 recieve_key = recv_all(recieve_key_len, keySoc).decode()
+#                 keyboard.release(recieve_key)
+
+def key_events():
+    # מילון תרגום קריטי
+    translation = {
+        'alt_l': 'alt', 'alt_r': 'alt gr',
+        'ctrl_l': 'ctrl', 'ctrl_r': 'ctrl',
+        'shift_l': 'shift', 'shift_r': 'shift',
+        'cmd': 'windows', 'caps_lock': 'caps lock',
+        'enter': 'enter', 'esc': 'esc', 'space': 'space'
+    }
+
+    while True:
+        event_type = recv_all(1, keySoc) # 1=Down, 2=Up
+        key_mode = recv_all(1, keySoc)   # 1=Char, 2=Special
+
+        if key_mode == b"1":
+            scan_code = int.from_bytes(recv_all(1, keySoc), "big")
+            flag = 0 if event_type == b"1" else win32con.KEYEVENTF_KEYUP
+            win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY | flag, 0)
+        else:
+            name_len = int.from_bytes(recv_all(1, keySoc), "big")
+            name = recv_all(name_len, keySoc).decode()
+            
+            # תרגום שם המקש
+            final_name = translation.get(name, name)
+            
+            if event_type == b"1":
+                keyboard.press(final_name)
+            else:
+                keyboard.release(final_name)
+
 
 # recieve all movements and do them yourself
  
