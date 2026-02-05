@@ -1,8 +1,4 @@
-
 # server side:
-
-
-
 
 
 import struct
