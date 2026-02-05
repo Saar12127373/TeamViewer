@@ -1,174 +1,263 @@
-# client side - Original Structure
-import socket
-import win32api
-import win32con
-import keyboard
-import ctypes
-from threading import Thread
-import time
-import pyautogui
+# server side:
+
+
 import struct
-from PIL import ImageGrab
+import socket
+import keyboard 
+import ctypes
+import time
+from threading import Thread
+from pynput import mouse
+from PIL import Image
 import io
+import cv2
+import numpy as np
 
-# הגדרת מודעות ל-DPI כדי למנוע זיוף במיקום העכבר
-try:
-    ctypes.windll.shcore.SetProcessDpiAwareness(2) 
-except:
-    try:
-        ctypes.windll.user32.SetProcessDPIAware()
-    except:
-        pass
 
-# הגדרות תקשורת
-HOST = "192.168.1.129" # שנה ל-IP של השרת שלך
-TCP_PORT = 8090
+
+
+
+
+
+
+HOST = ""
+PORT = 8090
 UDP_PORT = 8091
 
-# קבועים לצילום מסך
-MAX_UDP_PAYLOAD = 1400
-PART_ID_LEN = 3 
-MAX_IMAGE_BYTES = MAX_UDP_PAYLOAD - PART_ID_LEN
 
-# ביטול ה-Fail-safe של pyautogui כדי למנוע קריסה בתנועות מהירות
-pyautogui.FAILSAFE = False
+# creating socket, specifing ipv4 and tcp
+soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# as a tuple giving ip and port
+soc.bind((HOST, PORT))
+    # waiting for connection
+soc.listen(1)
+print("Server is listening!")
 
+# key, mouse, screen socks are  new socket objects for send and recv msg
+# client addr is the ip and port 
+        
+key_sock, client_addr1 = soc.accept()
+    
+mouse_soc, client_addr2 = soc.accept()
+
+# Create UDP socket for screenshots
+screen_soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+screen_soc.bind((HOST, UDP_PORT))
+
+
+
+# recover all data sent                          
 def recv_all(length, client_sock):
     content = b""
     while(length > 0):
-        try:
-            tempContent = client_sock.recv(length)
-            if not tempContent: return None
-            length -= len(tempContent)
-            content += tempContent
-        except:
-            return None
+        tempContent = client_sock.recv(length)
+        length -= len(tempContent)
+        content += tempContent
     return content
 
-# --- התחברות לסוקטים ---
-keySoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-keySoc.connect((HOST, TCP_PORT))
+ # geting the key code (only if not a speacial letter)
+def keyTo_scanCode(key):
+    result = ctypes.windll.User32.VkKeyScanW(ord(key))
+    vk_key = result & 0xFF
+    return vk_key
+    
 
-mouseSoc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-mouseSoc.connect((HOST, TCP_PORT))
-
-screenSoc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-print("Connected to server!")
-
-# קבלת רזולוציית השרת (חשוב: big endian)
-server_width = int.from_bytes(recv_all(2, mouseSoc), "big")
-server_heigh = int.from_bytes(recv_all(2, mouseSoc), "big")
 
 def get_screen_resolution():
     user32 = ctypes.windll.user32
-    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    screen_width = user32.GetSystemMetrics(0)  # SM_CXSCREEN
+    screen_height = user32.GetSystemMetrics(1)  # SM_CYSCREEN
+    return screen_width, screen_height
 
-client_width, client_heigth = get_screen_resolution()
+server_width, server_heigth = get_screen_resolution()
+print(server_width, server_heigth)
 
-# --- לוגיקת מקלדת (המבנה המקורי שלך) ---
-def key_events():
+mouse_soc.sendall(int(server_width).to_bytes(2, "big"))
+mouse_soc.sendall(int(server_heigth).to_bytes(2, "big"))
+
+
+def keyBoard_Events():
     while True:
-        recieve_event = recv_all(1, keySoc)
-        if not recieve_event: break
+        event = keyboard.read_event()
+        event_type = event.event_type
+        event_name = event.name
 
-        # לחיצת מקש
-        if recieve_event == b"1":
-            recieve_key_type = recv_all(1, keySoc)
-            if recieve_key_type == b"1": # תו רגיל
-                scan_code = int.from_bytes(recv_all(1, keySoc), "big")
-                win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY, 0)
-            else: # מקש מיוחד
-                recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
-                recieve_key = recv_all(recieve_key_len, keySoc).decode()
-                keyboard.press(recieve_key) 
+        # key pressed
+        if event_type == "down":
+            key_sock.sendall(b"1")
+        # key released
+        elif event_type == "up":
+            key_sock.sendall(b"2")
+        
+        if len(event_name) == 1:
+            key_sock.sendall(b"1")
+            scan_code = keyTo_scanCode(event_name)
 
-        # שחרור מקש
-        elif recieve_event == b"2":
-            recieve_key_type = recv_all(1, keySoc)
-            if recieve_key_type == b"1": # תו רגיל
-                scan_code = int.from_bytes(recv_all(1, keySoc), "big")
-                win32api.keybd_event(scan_code, 0, win32con.KEYEVENTF_EXTENDEDKEY | win32con.KEYEVENTF_KEYUP, 0)
-            else: # מקש מיוחד
-                recieve_key_len = int.from_bytes(recv_all(1, keySoc), "big")
-                recieve_key = recv_all(recieve_key_len, keySoc).decode()
-                keyboard.release(recieve_key)
-
-# --- לוגיקת עכבר (המבנה המקורי שלך) ---
-def mouse_handeling():
-    while True:
-        mouse_action = recv_all(1, mouseSoc)
-        if not mouse_action: break
-
-        if mouse_action == b"0":  # תנועה
-            packed_data = recv_all(4, mouseSoc)
-            x, y = struct.unpack('hh', packed_data)
-            mapped_x = int(x * (client_width / server_width))
-            mapped_y = int(y * (client_heigth / server_heigh))
-            win32api.SetCursorPos((mapped_x, mapped_y))
+            key_sock.sendall(int(scan_code).to_bytes(1, "big"))
     
-        elif mouse_action == b"1": # לחיצה (Down)
-            button_event = recv_all(1, mouseSoc)
-            packed_data = recv_all(4, mouseSoc)
-            x, y = struct.unpack('hh', packed_data)
-            mapped_x = int(x * (client_width / server_width))
-            mapped_y = int(y * (client_heigth / server_heigh))
-            
-            button = "left" if button_event == b"3" else "right"
-            pyautogui.mouseDown(mapped_x, mapped_y, button=button)
+        else:
+            key_sock.sendall(b"2")
+            key_sock.sendall(len(event_name).to_bytes(1, "big"))
+            key_sock.sendall(event_name.encode())
 
-        elif mouse_action == b"2": # שחרור (Up)
-            button_event = recv_all(1, mouseSoc)
-            packed_data = recv_all(4, mouseSoc)
-            x, y = struct.unpack('hh', packed_data)
-            mapped_x = int(x * (client_width / server_width))
-            mapped_y = int(y * (client_heigth / server_heigh))
-            
-            button = "left" if button_event == b"3" else "right"
-            pyautogui.mouseUp(mapped_x, mapped_y, button=button)
 
-# --- לוגיקת צילום מסך ---
-def divide_image(image):
-    width, height = image.size
-    rows, cols = 8, 16
-    part_width, part_height = width // cols, height // rows
-    parts = []
-    for i in range(rows):
-        for j in range(cols):
-            left, top = j * part_width, i * part_height
-            parts.append(image.crop((left, top, left + part_width, top + part_height)))
-    return parts
+def on_move(x, y):
+    mouse_soc.sendall(b"0")  # Indicate a movement event
+    send_cords(x, y)
 
-def encode_image_part(part):
-    buf = io.BytesIO()
-    part.save(buf, format="JPEG", quality=40)
-    return buf.getvalue()
 
-def send_screenshot():
+def on_click(x, y, button, pressed):
+    if pressed:
+        mouse_soc.sendall(b"1")  # Indicate a click event
+    else:
+        mouse_soc.sendall(b"2")  # Indicate a release event
+
+    # Send button type 
+    if button == mouse.Button.left:
+        mouse_soc.sendall(b"3")  # Left button
+    elif button == mouse.Button.right:
+        mouse_soc.sendall(b"4")  # Right button
+    
+    send_cords(x, y)
+
+
+def send_cords(x,y):
+        # placment will always be between 1 -2 bytes so not worth sending length
+        #sending cords, also being able to send negative
+        packed_data = struct.pack('hh', x, y)
+        mouse_soc.sendall(packed_data)
+        time.sleep(0.01)
+
+
+
+def mouse_managment():
+
+    with mouse.Listener(on_move = on_move, on_click=on_click) as listener:
+        listener.join()
+
+
+def initialize_image_parts(part_width, part_height):
+    black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
+    black_part_data = io.BytesIO()
+    black_part.save(black_part_data, format='JPEG', quality=30, optimize=True)
+    black_part_bytes = black_part_data.getvalue()
+
+    image_parts = [black_part_bytes] * 128
+    return image_parts, black_part_bytes
+
+def receive_screenshot(image_parts):
+    # i took down the part of checking the orded of the packets - the reason is: the deiffrence between the speed
+
     while True:
-        try:
-            screenshot = ImageGrab.grab()
-            image_parts = divide_image(screenshot)
-            for idx, part in enumerate(image_parts):
-                encoded = encode_image_part(part)
-                packet = f"{idx:03}".encode() + encoded
-                screenSoc.sendto(packet, (HOST, UDP_PORT))
-
-            screenSoc.sendto(b"1", (HOST, UDP_PORT))
-            time.sleep(0.01)
-        except:
+        data, addr = screen_soc.recvfrom(65535)
+        if(data == b"1"):
             break
 
-# --- הפעלה ---
-if __name__ == "__main__":
-    t1 = Thread(target=key_events)
-    t2 = Thread(target=mouse_handeling)
-    t3 = Thread(target=send_screenshot)
+        part_id_len = 3
 
-    t1.start()
-    t2.start()        
-    t3.start()
+        part_id = data[:part_id_len].decode()
+        part_data = data[part_id_len:]
+        
+        # integer will ignore 0
+        part_index = int(part_id)
+        image_parts[part_index] = part_data
 
-    t1.join()
-    t2.join()
-    t3.join()
+
+
+#added now
+def load_screenshot(image_parts, default_part_bytes):
+    parts = []
+    for part in image_parts:
+        try:
+            img = Image.open(io.BytesIO(part))
+            parts.append(img)
+        except:
+            img = Image.open(io.BytesIO(default_part_bytes))
+            parts.append(img)
+
+    part_width, part_height = parts[0].size
+    width, height = part_width * 16, part_height * 8
+
+    full_image = Image.new('RGB', (width, height))
+
+    for i in range(8):
+        for j in range(16):
+            full_image.paste(parts[i * 16 + j], (j * part_width, i * part_height))
+
+    cv_image = np.array(full_image)
+    cv_image = cv_image[:, :, ::-1]
+    cv2.imshow('Live Video', cv_image)
+    cv2.waitKey(1)
+
+
+
+
+
+
+
+
+def make_black_part_bytes(part_width, part_height):
+    black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
+    buf = io.BytesIO()
+    black_part.save(buf, format='JPEG', quality=30, optimize=True)
+    return buf.getvalue()
+
+
+def handle_Screenshots():
+    cv2.namedWindow('Live Video', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('Live Video', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    while True:
+        # זמני: נכין רשימה ריקה (או עם bytes ריקים)
+        image_parts = [b""] * 128
+
+        receive_screenshot(image_parts)
+
+        # נשתמש בגודל אמיתי מהחלק הראשון שהגיע
+        first_part_bytes = None
+        for p in image_parts:
+            if p:
+                first_part_bytes = p
+                break
+
+        if first_part_bytes is None:
+            continue  # לא הגיע שום חלק בפריים הזה
+
+        first = Image.open(io.BytesIO(first_part_bytes))
+        part_width, part_height = first.size
+
+        default_part_bytes = make_black_part_bytes(part_width, part_height)
+
+        # מלא חסרים ב-default (רק אם ריק)
+        for i in range(128):
+            if not image_parts[i]:
+                image_parts[i] = default_part_bytes
+
+        load_screenshot(image_parts, default_part_bytes)
+
+
+
+# Create threads for each function so they both will work at the same time:
+
+keyboard_thread = Thread(target=keyBoard_Events)
+mouse_thread = Thread(target=mouse_managment)
+screen_thread = Thread(target=handle_Screenshots)
+
+keyboard_thread.start()
+mouse_thread.start()
+screen_thread.start()
+
+
+keyboard_thread.join()
+mouse_thread.join()
+screen_thread.join()
+
+
+#closing sockets:
+key_sock.close()
+mouse_soc.close()
+screen_soc.close()
+
+soc.close()
+
+
+# thers an explanation about the program in a file named explanation.txt
