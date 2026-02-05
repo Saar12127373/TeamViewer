@@ -178,7 +178,7 @@ def mouse_handeling():
             # Scale coordinates based on the resolution difference
             mapped_x = int(control_com_x_Cords * (client_res[0] / server_res[0]))
             mapped_y = int(control_com_y_Cords * (client_res[1] / server_res[1]))
-            time.sleep(0.01)
+            time.sleep(0.005)
             win32api.SetCursorPos((mapped_x, mapped_y))
     
 
