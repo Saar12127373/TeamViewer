@@ -139,22 +139,28 @@ def keyBoard_Events():
 def mouse_managment():
     def on_move(x, y):
         global last_send
-        now = time.time()
+        try:
+            now = time.time()
+            if now - last_send < 0.01:
+                return
+            last_send = now
 
-        if now - last_send < 0.01:   # 10ms = 100Hz
+            mouse_soc.sendall(b"0")
+            send_cords(x, y)
+
+        except Exception as e:
+            print("on_move error:", e)
+            # לא מחזירים False כדי לא לעצור את ה-listener
             return
 
-        last_send = now
-        mouse_soc.sendall(b"0")
-        send_cords(x, y)
-
     def on_click(x, y, button, pressed):
-        if not running:
-            return False
-        mouse_soc.sendall(b"1" if pressed else b"2")
-        btn = b"3" if button == pynput_mouse.Button.left else b"4"
-        mouse_soc.sendall(btn)
-        send_cords(x, y)
+        try:
+            mouse_soc.sendall(b"1" if pressed else b"2")
+            btn = b"3" if button == pynput_mouse.Button.left else b"4"
+            mouse_soc.sendall(btn)
+            send_cords(x, y)
+        except Exception as e:
+            print("on_click error:", e)
 
     with pynput_mouse.Listener(on_move=on_move, on_click=on_click, suppress=False) as listener:
         listener.join()
