@@ -73,7 +73,6 @@ def start_video_receiver():
         "-noborder",
         "-flags", "low_delay",
         "-sync", "ext",
-        "-flags", "low_delay",
         "-framedrop",
         "-sync", "ext",
         url
