@@ -152,7 +152,7 @@ def mouse_managment():
         mouse_soc.sendall(btn)
         send_cords(x, y)
 
-    with pynput_mouse.Listener(on_move=on_move, on_click=on_click, suppress=True) as listener:
+    with pynput_mouse.Listener(on_move=on_move, on_click=on_click, suppress=False) as listener:
         listener.join()
 
 
