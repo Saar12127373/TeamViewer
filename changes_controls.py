@@ -64,7 +64,7 @@ mouse_soc.sendall(int(server_height).to_bytes(2, "big"))
 # --- VIDEO: SRT receiver (ffplay) ---
 def start_video_receiver():
     # SRT listener URL (note: SRT runs over UDP)
-    url = f"srt://0.0.0.0:{SRT_PORT}?mode=listener&latency={SRT_LATENCY_MS}&rcvbuf=2097152"
+    url = f"srt://0.0.0.0:{PORT}?mode=listener&latency=120&rcvbuf=8388608"
 
     cmd = [
         "ffplay",
