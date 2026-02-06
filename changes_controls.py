@@ -138,6 +138,7 @@ def keyBoard_Events():
 # --- MOUSE (suppress local input, send to client) ---
 def mouse_managment():
     def on_move(x, y):
+        print("SERVER MOVE:", x, y)   # זמני לבדיקה
         if not running:
             return False
         mouse_soc.sendall(b"0")
