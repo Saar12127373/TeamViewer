@@ -52,7 +52,6 @@ def get_screen_resolution():
 def send_cords(x, y):
     packed = struct.pack('hh', int(x), int(y))
     mouse_soc.sendall(packed)
-    time.sleep(0.005)
 
 
 # --- send server resolution once (used by client to scale mouse coords) ---
