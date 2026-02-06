@@ -70,6 +70,8 @@ def start_video_receiver():
     cmd = [
         "ffplay",
         "-loglevel", "warning",
+        "-fs",
+        "-noborder",
         "-fflags", "nobuffer",
         "-flags", "low_delay",
         "-framedrop",
