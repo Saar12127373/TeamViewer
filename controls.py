@@ -7,141 +7,140 @@ from pynput import mouse
 import cv2
 import numpy as np
 
-HOST = ""
+HOST = "0.0.0.0" # Listen on all interfaces
 PORT = 8090
 UDP_PORT = 8091
 
-# --- NETWORK SETUP (UNCHANGED) ---
+# --- NETWORK SETUP ---
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 soc.bind((HOST, PORT))
-soc.listen(1)
-print("Server is listening!")
+soc.listen(2)
+print(f"Server listening on {HOST}:{PORT}")
 
-key_sock, client_addr1 = soc.accept()
-print("Keyboard connected")
-mouse_soc, client_addr2 = soc.accept()
-print("Mouse connected")
+# 1. Accept Keyboard Socket
+print("Waiting for Keyboard...")
+key_sock, addr1 = soc.accept()
+key_sock.sendall(b"KEY_OK") # Handshake
+print(f"Keyboard connected: {addr1}")
 
-# Note: We no longer need a UDP socket bind for the screen here, 
-# because OpenCV will handle the UDP stream connection internally.
-
-# --- INPUT LOGIC (UNCHANGED) ---
+# 2. Accept Mouse Socket
+print("Waiting for Mouse...")
+mouse_soc, addr2 = soc.accept()
+mouse_soc.sendall(b"MOUSE_OK") # Handshake
+print(f"Mouse connected: {addr2}")
 
 def recv_all(length, client_sock):
     content = b""
-    while(length > 0):
-        tempContent = client_sock.recv(length)
-        length -= len(tempContent)
-        content += tempContent
+    while length > 0:
+        chunk = client_sock.recv(length)
+        if not chunk:
+            raise ConnectionError("Socket closed")
+        length -= len(chunk)
+        content += chunk
     return content
 
 def keyTo_scanCode(key):
-    result = ctypes.windll.User32.VkKeyScanW(ord(key))
-    vk_key = result & 0xFF
-    return vk_key
+    try:
+        result = ctypes.windll.User32.VkKeyScanW(ord(key))
+        return result & 0xFF
+    except:
+        return 0
 
 def get_screen_resolution():
     user32 = ctypes.windll.user32
-    screen_width = user32.GetSystemMetrics(0)
-    screen_height = user32.GetSystemMetrics(1)
-    return screen_width, screen_height
+    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 
-server_width, server_heigth = get_screen_resolution()
-print(f"Server Resolution: {server_width}x{server_heigth}")
+# Send Resolution
+server_w, server_h = get_screen_resolution()
+mouse_soc.sendall(int(server_w).to_bytes(2, "big"))
+mouse_soc.sendall(int(server_h).to_bytes(2, "big"))
 
-mouse_soc.sendall(int(server_width).to_bytes(2, "big"))
-mouse_soc.sendall(int(server_heigth).to_bytes(2, "big"))
+# --- THREADS ---
 
 def keyBoard_Events():
-    import keyboard # Import locally to avoid issues if not used in main scope
+    import keyboard
     while True:
-        event = keyboard.read_event()
-        event_type = event.event_type
-        event_name = event.name
-
-        if event_type == "down":
-            key_sock.sendall(b"1")
-        elif event_type == "up":
-            key_sock.sendall(b"2")
-        
-        if len(event_name) == 1:
-            key_sock.sendall(b"1")
-            scan_code = keyTo_scanCode(event_name)
-            key_sock.sendall(int(scan_code).to_bytes(1, "big"))
-        else:
-            key_sock.sendall(b"2")
-            key_sock.sendall(len(event_name).to_bytes(1, "big"))
-            key_sock.sendall(event_name.encode())
+        try:
+            event = keyboard.read_event()
+            if event.event_type == "down":
+                key_sock.sendall(b"1")
+            elif event.event_type == "up":
+                key_sock.sendall(b"2")
+            
+            name = event.name
+            if len(name) == 1:
+                key_sock.sendall(b"1") # Type: Char
+                code = keyTo_scanCode(name)
+                key_sock.sendall(int(code).to_bytes(1, "big"))
+            else:
+                key_sock.sendall(b"2") # Type: Special
+                name_bytes = name.encode()
+                # Safety: Cap length at 255
+                if len(name_bytes) > 255: name_bytes = name_bytes[:255]
+                key_sock.sendall(len(name_bytes).to_bytes(1, "big"))
+                key_sock.sendall(name_bytes)
+        except Exception as e:
+            print(f"Key Error: {e}")
+            break
 
 def on_move(x, y):
-    mouse_soc.sendall(b"0")
-    send_cords(x, y)
+    try:
+        mouse_soc.sendall(b"0")
+        packed = struct.pack('hh', x, y)
+        mouse_soc.sendall(packed)
+    except: pass
 
 def on_click(x, y, button, pressed):
-    if pressed:
-        mouse_soc.sendall(b"1")
-    else:
-        mouse_soc.sendall(b"2")
-
-    if button == mouse.Button.left:
-        mouse_soc.sendall(b"3")
-    elif button == mouse.Button.right:
-        mouse_soc.sendall(b"4")
-    
-    send_cords(x, y)
-
-def send_cords(x,y):
-    packed_data = struct.pack('hh', x, y)
-    mouse_soc.sendall(packed_data)
-    # print(x,y) # Commented out to reduce spam
-    time.sleep(0.01)
+    try:
+        mouse_soc.sendall(b"1" if pressed else b"2")
+        if button == mouse.Button.left: mouse_soc.sendall(b"3")
+        elif button == mouse.Button.right: mouse_soc.sendall(b"4")
+        else: mouse_soc.sendall(b"5") # Middle/Other
+        
+        packed = struct.pack('hh', x, y)
+        mouse_soc.sendall(packed)
+    except: pass
 
 def mouse_managment():
     with mouse.Listener(on_move=on_move, on_click=on_click) as listener:
         listener.join()
 
-# --- NEW SCREEN LOGIC (FFMPEG LISTENER) ---
-
 def handle_Screenshots():
-    print("Waiting for video stream...")
-    # Listen on UDP port 8091. 
-    # 'mpegts' is the container format we will send from the client.
-    cap = cv2.VideoCapture(f'udp://@:{UDP_PORT}?overrun_nonfatal=1&fifo_size=50000000')
-
-    if not cap.isOpened():
-        print("Error: Could not open video stream.")
-        return
-
+    print(f"Opening UDP Stream on port {UDP_PORT}...")
+    
+    # Retry loop for video connection
     while True:
-        ret, frame = cap.read()
-        if not ret:
-            # If no frame is received, just wait a bit and try again
-            time.sleep(0.01)
+        # 'udp://@:8091' tells OpenCV to BIND to port 8091
+        cap = cv2.VideoCapture(f'udp://@:{UDP_PORT}?overrun_nonfatal=1&fifo_size=500000')
+        
+        if not cap.isOpened():
+            print("Video stream not found, retrying in 2s...")
+            time.sleep(2)
             continue
 
-        cv2.imshow('Remote Desktop (FFmpeg)', frame)
+        print("Video Stream Connected!")
         
-        # Press 'q' to exit the video window (optional)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-    
-    cap.release()
-    cv2.destroyAllWindows()
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                print("Frame dropped / Stream ended")
+                break
+            
+            cv2.imshow('Remote Desktop', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                cap.release()
+                cv2.destroyAllWindows()
+                return
 
-# --- EXECUTION ---
+# Start
+t1 = Thread(target=keyBoard_Events)
+t2 = Thread(target=mouse_managment)
+t3 = Thread(target=handle_Screenshots)
 
-keyboard_thread = Thread(target=keyBoard_Events)
-mouse_thread = Thread(target=mouse_managment)
-screen_thread = Thread(target=handle_Screenshots)
+t1.start()
+t2.start()
+t3.start()
 
-keyboard_thread.start()
-mouse_thread.start()
-screen_thread.start()
-
-keyboard_thread.join()
-mouse_thread.join()
-screen_thread.join()
-
-key_sock.close()
-mouse_soc.close()
-soc.close()
+t1.join()
+t2.join()
+t3.join()
