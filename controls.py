@@ -1,6 +1,4 @@
 # server side:
-
-
 import struct
 import socket
 import keyboard 
@@ -12,12 +10,6 @@ from PIL import Image
 import io
 import cv2
 import numpy as np
-
-
-
-
-
-
 
 
 HOST = ""
@@ -37,7 +29,7 @@ print("Server is listening!")
 # client addr is the ip and port 
         
 key_sock, client_addr1 = soc.accept()
-    
+
 mouse_soc, client_addr2 = soc.accept()
 
 # Create UDP socket for screenshots
@@ -150,6 +142,7 @@ def send_cords(x,y):
         #sending cords, also being able to send negative
         packed_data = struct.pack('hh', x, y)
         mouse_soc.sendall(packed_data)
+        print(x,y)
         time.sleep(0.01)
 
 
