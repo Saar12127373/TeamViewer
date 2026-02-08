@@ -56,7 +56,7 @@ mouse_soc.sendall(int(server_w).to_bytes(2, "big"))
 mouse_soc.sendall(int(server_h).to_bytes(2, "big"))
 
 # --- THREADS ---
-dwad
+
 def keyBoard_Events():
     import keyboard
     while True:
