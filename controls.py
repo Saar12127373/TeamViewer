@@ -184,7 +184,6 @@ def receive_screenshot(image_parts):
 def load_screenshot(image_parts):
     parts = [Image.open(io.BytesIO(part)) for part in image_parts]
 
-    # Ensure the width and height calculations match image layout
     part_width, part_height = parts[0].size
     width, height = part_width * 16, part_height * 8
 
@@ -194,11 +193,17 @@ def load_screenshot(image_parts):
         for j in range(16):
             full_image.paste(parts[i * 16 + j], (j * part_width, i * part_height))
 
+    # Convert PIL image to OpenCV format
     cv_image = np.array(full_image)
-    cv_image = cv_image[:, :, ::-1]  # from RGB to BGR
-    cv2.imshow('Live Video', cv_image)
-    cv2.waitKey(4)
+    cv_image = cv_image[:, :, ::-1]  # RGB -> BGR
 
+    # 🔥 IMPORTANT CHANGE:
+    # Resize received image to EXACT monitor size
+    screen_w, screen_h = get_screen_resolution()
+    cv_image = cv2.resize(cv_image, (screen_w, screen_h), interpolation=cv2.INTER_LINEAR)
+
+    cv2.imshow(WIN_NAME, cv_image)
+    cv2.waitKey(1)
 
 
 def handle_Screenshots():
