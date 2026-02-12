@@ -15,7 +15,11 @@ import numpy as np
 HOST = ""
 PORT = 8090
 UDP_PORT = 8091
+WIN_NAME = "Live Video"
 
+cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
+cv2.setWindowProperty(WIN_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+cv2.moveWindow(WIN_NAME, 0, 0)
 
 # creating socket, specifing ipv4 and tcp
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -153,6 +157,8 @@ def mouse_managment():
         listener.join()
 
 
+
+
 # Initialize with black image parts
 def initialize_image_parts(part_width, part_height):
     black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
@@ -182,6 +188,7 @@ def receive_screenshot(image_parts):
 
 
 def load_screenshot(image_parts):
+
     parts = [Image.open(io.BytesIO(part)) for part in image_parts]
 
     part_width, part_height = parts[0].size
