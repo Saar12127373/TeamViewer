@@ -205,7 +205,9 @@ def handle_Screenshots():
     part_width, part_height = 1920 // 16, 1080 // 8
 
     cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty(WIN_NAME, cv2.WND_PROP_MAXIMIZED, cv2.WINDOW_MAXIMIZED)
+
+    screen_w, screen_h = get_screen_resolution()
+    cv2.resizeWindow(WIN_NAME, screen_w, screen_h)
 
     # מציג משהו פעם אחת כדי שהחלון יופיע מיד
     blank = np.zeros((200, 200, 3), dtype=np.uint8)
