@@ -40,7 +40,7 @@ cmd = [
     "-bufsize", "500k",
     "-g", str(FPS),
     "-keyint_min", str(FPS),
-    "-bf", "0",              # no B-frames
+    "-bf", "0",
 
     # Transport
     "-f", "mpegts",
