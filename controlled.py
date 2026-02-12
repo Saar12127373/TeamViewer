@@ -207,21 +207,15 @@ def send_screenshot():
 
 
 
-if __name__ == "_main_":
-    # threads for key, mouse:
+if __name__ == "__main__":
     key_thread = Thread(target=key_events)
     mouse_thread = Thread(target=mouse_handeling)
     screen_thread = Thread(target=send_screenshot)
 
     key_thread.start()
-    mouse_thread.start()        
+    mouse_thread.start()
     screen_thread.start()
 
     key_thread.join()
     mouse_thread.join()
     screen_thread.join()
-
-    #closing sockets:
-    keySoc.close()
-    mouseSoc.close()
-    screenSoc.close()
