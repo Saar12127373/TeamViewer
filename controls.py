@@ -202,17 +202,19 @@ def load_screenshot(image_parts):
 
 
 def handle_Screenshots():
-    part_width, part_height = 1920 // 16, 1080 // 8  # Adjust based on image part sizes
+    part_width, part_height = 1920 // 16, 1080 // 8
+
     cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
     cv2.setWindowProperty(WIN_NAME, cv2.WND_PROP_MAXIMIZED, cv2.WINDOW_MAXIMIZED)
+
+    # מציג משהו פעם אחת כדי שהחלון יופיע מיד
+    blank = np.zeros((200, 200, 3), dtype=np.uint8)
+    cv2.imshow(WIN_NAME, blank)
+    cv2.waitKey(1)
+
     while True:
- 
         image_parts = initialize_image_parts(part_width, part_height)
-
-        # Receive screenshots
         receive_screenshot(image_parts)
-
-        # Process and display the received screenshot
         load_screenshot(image_parts)
     
 
