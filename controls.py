@@ -1,146 +1,241 @@
-import socket
+# server side:
 import struct
-import time
+import socket
+import keyboard 
 import ctypes
+import time
 from threading import Thread
 from pynput import mouse
+from PIL import Image
+import io
 import cv2
 import numpy as np
 
-HOST = "0.0.0.0" # Listen on all interfaces
+
+HOST = ""
 PORT = 8090
 UDP_PORT = 8091
 
-# --- NETWORK SETUP ---
+
+# creating socket, specifing ipv4 and tcp
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# as a tuple giving ip and port
 soc.bind((HOST, PORT))
-soc.listen(2)
-print(f"Server listening on {HOST}:{PORT}")
+    # waiting for connection
+soc.listen(1)
+print("Server is listening!")
 
-# 1. Accept Keyboard Socket
-print("Waiting for Keyboard...")
-key_sock, addr1 = soc.accept()
-key_sock.sendall(b"KEY_OK") # Handshake
-print(f"Keyboard connected: {addr1}")
+# key, mouse, screen socks are  new socket objects for send and recv msg
+# client addr is the ip and port 
+        
+key_sock, client_addr1 = soc.accept()
 
-# 2. Accept Mouse Socket
-print("Waiting for Mouse...")
-mouse_soc, addr2 = soc.accept()
-mouse_soc.sendall(b"MOUSE_OK") # Handshake
-print(f"Mouse connected: {addr2}")
+mouse_soc, client_addr2 = soc.accept()
 
+# Create UDP socket for screenshots
+screen_soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+screen_soc.bind((HOST, UDP_PORT))
+
+
+
+# recover all data sent                          
 def recv_all(length, client_sock):
     content = b""
-    while length > 0:
-        chunk = client_sock.recv(length)
-        if not chunk:
-            raise ConnectionError("Socket closed")
-        length -= len(chunk)
-        content += chunk
+    while(length > 0):
+        tempContent = client_sock.recv(length)
+        length -= len(tempContent)
+        content += tempContent
     return content
 
+ # geting the key code (only if not a speacial letter)
 def keyTo_scanCode(key):
-    try:
-        result = ctypes.windll.User32.VkKeyScanW(ord(key))
-        return result & 0xFF
-    except:
-        return 0
+    result = ctypes.windll.User32.VkKeyScanW(ord(key))
+    vk_key = result & 0xFF
+    return vk_key
+    
+
+
+
+
+# this kind of way isnt possible, the only way i found out possible is to know where to click in the keyboard
+
+# def keyDown(event):
+    # Sending choice for key down
+    # client_sock.sendall(b"1")
+
+    # # vk = 0
+    # key=0
+    # try:
+    #     key = event.name
+    #     sliced = key.find("_")
+    #     if sliced != -1:
+    #         key = key[:sliced]
+    #     # vk = event.value.vk
+    # except:
+    #     key = event.char
+    #     # vk = event.vk
+    # client_sock.sendall(len(key).to_bytes(1, "big"))
+    # print(f"Key down: {key}")
+    # client_sock.sendall(key.encode())
+
 
 def get_screen_resolution():
     user32 = ctypes.windll.user32
-    return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+    screen_width = user32.GetSystemMetrics(0)  # SM_CXSCREEN
+    screen_height = user32.GetSystemMetrics(1)  # SM_CYSCREEN
+    return screen_width, screen_height
 
-# Send Resolution
-server_w, server_h = get_screen_resolution()
-mouse_soc.sendall(int(server_w).to_bytes(2, "big"))
-mouse_soc.sendall(int(server_h).to_bytes(2, "big"))
+server_width, server_heigth = get_screen_resolution()
+print(server_width, server_heigth)
 
-# --- THREADS ---
+mouse_soc.sendall(int(server_width).to_bytes(2, "big"))
+mouse_soc.sendall(int(server_heigth).to_bytes(2, "big"))
+
 
 def keyBoard_Events():
-    import keyboard
     while True:
-        try:
-            event = keyboard.read_event()
-            if event.event_type == "down":
-                key_sock.sendall(b"1")
-            elif event.event_type == "up":
-                key_sock.sendall(b"2")
-            
-            name = event.name
-            if len(name) == 1:
-                key_sock.sendall(b"1") # Type: Char
-                code = keyTo_scanCode(name)
-                key_sock.sendall(int(code).to_bytes(1, "big"))
-            else:
-                key_sock.sendall(b"2") # Type: Special
-                name_bytes = name.encode()
-                # Safety: Cap length at 255
-                if len(name_bytes) > 255: name_bytes = name_bytes[:255]
-                key_sock.sendall(len(name_bytes).to_bytes(1, "big"))
-                key_sock.sendall(name_bytes)
-        except Exception as e:
-            print(f"Key Error: {e}")
-            break
+        event = keyboard.read_event()
+        event_type = event.event_type
+        event_name = event.name
+
+        # key pressed
+        if event_type == "down":
+            key_sock.sendall(b"1")
+        # key released
+        elif event_type == "up":
+            key_sock.sendall(b"2")
+        
+        if len(event_name) == 1:
+            key_sock.sendall(b"1")
+            scan_code = keyTo_scanCode(event_name)
+
+            key_sock.sendall(int(scan_code).to_bytes(1, "big"))
+    
+        else:
+            key_sock.sendall(b"2")
+            key_sock.sendall(len(event_name).to_bytes(1, "big"))
+            key_sock.sendall(event_name.encode())
+
 
 def on_move(x, y):
-    try:
-        mouse_soc.sendall(b"0")
-        packed = struct.pack('hh', x, y)
-        mouse_soc.sendall(packed)
-    except: pass
+    mouse_soc.sendall(b"0")  # Indicate a movement event
+    send_cords(x, y)
+
 
 def on_click(x, y, button, pressed):
-    try:
-        mouse_soc.sendall(b"1" if pressed else b"2")
-        if button == mouse.Button.left: mouse_soc.sendall(b"3")
-        elif button == mouse.Button.right: mouse_soc.sendall(b"4")
-        else: mouse_soc.sendall(b"5") # Middle/Other
-        
-        packed = struct.pack('hh', x, y)
-        mouse_soc.sendall(packed)
-    except: pass
+    if pressed:
+        mouse_soc.sendall(b"1")  # Indicate a click event
+    else:
+        mouse_soc.sendall(b"2")  # Indicate a release event
+
+    # Send button type 
+    if button == mouse.Button.left:
+        mouse_soc.sendall(b"3")  # Left button
+    elif button == mouse.Button.right:
+        mouse_soc.sendall(b"4")  # Right button
+    
+    send_cords(x, y)
+
+
+def send_cords(x,y):
+        # placment will always be between 1 -2 bytes so not worth sending length
+        #sending cords, also being able to send negative
+        packed_data = struct.pack('hh', x, y)
+        mouse_soc.sendall(packed_data)
+        print(x,y)
+        time.sleep(0.01)
+
+
 
 def mouse_managment():
-    with mouse.Listener(on_move=on_move, on_click=on_click) as listener:
+
+    with mouse.Listener(on_move = on_move, on_click=on_click) as listener:
         listener.join()
 
-def handle_Screenshots():
-    print(f"Opening UDP Stream on port {UDP_PORT}...")
+
+# Initialize with black image parts
+def initialize_image_parts(part_width, part_height):
+    black_part = Image.new('RGB', (part_width, part_height), (0, 0, 0))
+    black_part_data = io.BytesIO()
+    black_part.save(black_part_data, format='JPEG')
+    black_part_bytes = black_part_data.getvalue()
     
-    # Retry loop for video connection
+    return [black_part_bytes] * 128
+
+
+def receive_screenshot(image_parts):
+    # i took down the part of checking the orded of the packets - the reason is: the deiffrence between the speed
+
     while True:
-        # 'udp://@:8091' tells OpenCV to BIND to port 8091
-        cap = cv2.VideoCapture(f'udp://@:{UDP_PORT}?overrun_nonfatal=1&fifo_size=500000')
+        data, addr = screen_soc.recvfrom(65535)
+        if(data == b"1"):
+            break
+
+        part_id_len = 3
+
+        part_id = data[:part_id_len].decode()
+        part_data = data[part_id_len:]
         
-        if not cap.isOpened():
-            print("Video stream not found, retrying in 2s...")
-            time.sleep(2)
-            continue
+        # integer will ignore 0
+        part_index = int(part_id)
+        image_parts[part_index] = part_data
 
-        print("Video Stream Connected!")
-        
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("Frame dropped / Stream ended")
-                break
-            
-            cv2.imshow('Remote Desktop', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cap.release()
-                cv2.destroyAllWindows()
-                return
 
-# Start
-t1 = Thread(target=keyBoard_Events)
-t2 = Thread(target=mouse_managment)
-t3 = Thread(target=handle_Screenshots)
+def load_screenshot(image_parts):
+    parts = [Image.open(io.BytesIO(part)) for part in image_parts]
 
-t1.start()
-t2.start()
-t3.start()
+    # Ensure the width and height calculations match image layout
+    part_width, part_height = parts[0].size
+    width, height = part_width * 16, part_height * 8
 
-t1.join()
-t2.join()
-t3.join()
+    full_image = Image.new('RGB', (width, height))
+
+    for i in range(8):
+        for j in range(16):
+            full_image.paste(parts[i * 16 + j], (j * part_width, i * part_height))
+
+    cv_image = np.array(full_image)
+    cv_image = cv_image[:, :, ::-1]  # from RGB to BGR
+    cv2.imshow('Live Video', cv_image)
+    cv2.waitKey(4)
+
+
+
+def handle_Screenshots():
+    part_width, part_height = 1920 // 16, 1080 // 8  # Adjust based on image part sizes
+    while True:
+ 
+        image_parts = initialize_image_parts(part_width, part_height)
+
+        # Receive screenshots
+        receive_screenshot(image_parts)
+
+        # Process and display the received screenshot
+        load_screenshot(image_parts)
+    
+
+# Create threads for each function so they both will work at the same time:
+
+keyboard_thread = Thread(target=keyBoard_Events)
+mouse_thread = Thread(target=mouse_managment)
+screen_thread = Thread(target=handle_Screenshots)
+
+keyboard_thread.start()
+mouse_thread.start()
+screen_thread.start()
+
+
+keyboard_thread.join()
+mouse_thread.join()
+screen_thread.join()
+
+
+#closing sockets:
+key_sock.close()
+mouse_soc.close()
+screen_soc.close()
+
+soc.close()
+
+
+# thers an explanation about the program in a file named explanation.txt
