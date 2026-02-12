@@ -6,10 +6,10 @@ import sys
 HOST = "192.168.1.129"
 PORT = 8091
 
-# Tuning knobs
+
 FPS = 30
-SCALE_WIDTH = 1280     # try 960 / 1280 / 1600
-BITRATE = "2500k"      # try 1500k..4000k
+SCALE_WIDTH = 1280
+BITRATE = "2500k"
 
 # SRT caller URL
 url = (
