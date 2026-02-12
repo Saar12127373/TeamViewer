@@ -196,7 +196,7 @@ def load_screenshot(image_parts):
 
     cv_image = np.array(full_image)
     cv_image = cv_image[:, :, ::-1]  # from RGB to BGR
-    cv2.imshow('Live Video', cv_image)
+    cv2.imshow(WIN_NAME, cv_image)
     cv2.waitKey(4)
 
 
