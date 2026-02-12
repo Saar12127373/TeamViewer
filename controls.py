@@ -15,7 +15,7 @@ import numpy as np
 HOST = ""
 PORT = 8090
 UDP_PORT = 8091
-
+WIN_NAME = "Live Video"
 
 # creating socket, specifing ipv4 and tcp
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -203,6 +203,8 @@ def load_screenshot(image_parts):
 
 def handle_Screenshots():
     part_width, part_height = 1920 // 16, 1080 // 8  # Adjust based on image part sizes
+    cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty(WIN_NAME, cv2.WND_PROP_MAXIMIZED, cv2.WINDOW_MAXIMIZED)
     while True:
  
         image_parts = initialize_image_parts(part_width, part_height)
