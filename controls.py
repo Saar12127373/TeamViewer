@@ -206,19 +206,18 @@ def handle_Screenshots():
 
     cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
 
-    screen_w, screen_h = get_screen_resolution()
-    cv2.resizeWindow(WIN_NAME, screen_w, screen_h)
-
-    # מציג משהו פעם אחת כדי שהחלון יופיע מיד
-    blank = np.zeros((200, 200, 3), dtype=np.uint8)
+    # show a dummy frame once so the window exists in Windows
+    blank = np.zeros((10, 10, 3), dtype=np.uint8)
     cv2.imshow(WIN_NAME, blank)
     cv2.waitKey(1)
+
+    # true fullscreen (this removes the title bar)
+    cv2.setWindowProperty(WIN_NAME, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
     while True:
         image_parts = initialize_image_parts(part_width, part_height)
         receive_screenshot(image_parts)
         load_screenshot(image_parts)
-    
 
 # Create threads for each function so they both will work at the same time:
 
