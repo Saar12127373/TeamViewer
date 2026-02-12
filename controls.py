@@ -16,9 +16,7 @@ HOST = ""
 PORT = 8090
 UDP_PORT = 8091
 
-WIN_NAME = "Live Video"
-cv2.namedWindow(WIN_NAME, cv2.WINDOW_NORMAL)
-cv2.setWindowProperty(WIN_NAME, cv2.WND_PROP_MAXIMIZED, cv2.WINDOW_MAXIMIZED)
+
 # creating socket, specifing ipv4 and tcp
 soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 # as a tuple giving ip and port
