@@ -55,3 +55,51 @@ try:
 except FileNotFoundError:
     print("ffmpeg not found. Make sure FFmpeg is in PATH.")
     sys.exit(1)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# receiver.py
+import subprocess
+import sys
+
+# Listen on all interfaces
+PORT = 8091
+
+# SRT listener URL
+url = f"srt://0.0.0.0:{PORT}?mode=listener&latency=80&rcvbuf=2097152"
+
+cmd = [
+    "ffplay",
+    "-loglevel", "warning",
+
+    # Low-latency playback tuning
+    "-fflags", "nobuffer",
+    "-flags", "low_delay",
+    "-framedrop",
+    "-sync", "ext",
+
+    # Input
+    url
+]
+
+print("SRT receiver started (ffplay).")
+print("Waiting for sender... Close the window to stop.")
+
+try:
+    subprocess.run(cmd, check=False)
+except FileNotFoundError:
+    print("ffplay not found. Make sure FFmpeg is in PATH.")
+    sys.exit(1)
