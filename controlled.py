@@ -13,7 +13,7 @@ import cv2
 
 
 
-HOST = "10.0.0.30"
+HOST = "192.168.1.128"
 TCP_PORT = 8090
 UDP_PORT = 8091
 
