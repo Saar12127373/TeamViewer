@@ -1,4 +1,5 @@
 # sender.py
+
 import subprocess
 import sys
 
@@ -72,6 +73,7 @@ except FileNotFoundError:
 
 
 # receiver.py
+
 import subprocess
 import sys
 
@@ -85,13 +87,12 @@ cmd = [
     "ffplay",
     "-loglevel", "warning",
 
-    # Low-latency playback tuning
     "-fflags", "nobuffer",
     "-flags", "low_delay",
     "-framedrop",
     "-sync", "ext",
 
-    # Input
+
     url
 ]
 
