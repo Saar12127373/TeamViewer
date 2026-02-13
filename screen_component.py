@@ -52,7 +52,7 @@ class ScreenReceiver:
             # Reconstruct correctly using fixed indices
             grid = []
             for p in self.parts:
-                if p is None: return # Skip frame if any tile is missing
+                if p is None: return 
                 grid.append(Image.open(io.BytesIO(p)))
             
             pw, ph = grid[0].size
@@ -63,6 +63,12 @@ class ScreenReceiver:
                     full_img.paste(grid[i * COLS + j], (j * pw, i * ph))
             
             cv_img = cv2.cvtColor(np.array(full_img), cv2.COLOR_RGB2BGR)
+            
+            # --- FORCING THE WINDOW TO THE FRONT ---
             cv2.imshow(self.win_name, cv_img)
+            
+            # This forces the window to stay on top of all other apps
+            cv2.setWindowProperty(self.win_name, cv2.WND_PROP_TOPMOST, 1)
+            
             cv2.waitKey(1)
         except: pass
