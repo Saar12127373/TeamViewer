@@ -2,9 +2,9 @@ import socket
 import ctypes
 import threading
 from const import *
-from keyboard_component import KeyboardSender
-from mouse_component import MouseSender
-from screen_component import ScreenReceiver
+from components.keyboard_component import KeyboardSender
+from components.mouse_component import MouseSender
+from components.screen_component import ScreenReceiver
 
 def main():
     stop_event = threading.Event()
