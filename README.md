@@ -1,62 +1,52 @@
-מערכת שליטה מרחוק (Remote Desktop Control System)
+Remote Desktop Control System
+This project implements a remote desktop solution that enables real-time screen viewing and full keyboard/mouse control of a remote Windows machine. It uses a Client-Server architecture optimized for low latency and reliability.
 
-הפרויקט מממש מערכת שליטה מרחוק המאפשרת צפייה במסך של מחשב אחר ושליטה מלאה במקלדת ובעכבר שלו בזמן אמת.
+Network Architecture & Protocols
+The system utilizes two distinct communication channels to balance speed and data integrity:
 
-המערכת בנויה בארכיטקטורת Server-Client ומבוססת על שימוש בשני פרוטוקולים:
+TCP (Control Channel): Handles keyboard and mouse input events. TCP ensures that every user command is delivered reliably and in the correct sequence.
 
-TCP להעברת פקודות קלט (מקלדת ועכבר)
+UDP (Video Channel): Streams screen data using segmentation. UDP is used to bypass Head-of-Line Blocking (a common issue in TCP video streaming), significantly reducing latency for a smoother visual experience.
 
-UDP להעברת תמונת המסך בצורה מחולקת (segmentation) לצורך הקטנת השהיה (latency)
+Environment: Developed in Python for Windows environments.
 
-הפרויקט נכתב ב-Python ומיועד לריצה בסביבת Windows.
+Core Functionality
+Server Side (Remote Host)
+Screen Capture: Captures the desktop frames in real-time.
 
-איך זה עובד
-בצד השרת:
+Segmentation & Transmission: Breaks each frame into smaller chunks (segments) and broadcasts them via UDP.
 
-מתבצעת לכידת מסך בזמן אמת.
+Command Listener: Receives input data from the client via the TCP socket.
 
-כל פריים מחולק לחלקים קטנים ונשלח דרך UDP.
+Input Injection: Executes the received commands on the host OS using the Windows API (SendInput).
 
-מתקבלות פקודות קלט מהלקוח דרך TCP.
+Client Side (Controller)
+Frame Reassembly: Collects UDP segments and reconstructs them into a complete image frame.
 
-מתבצעת הזרקת קלט למערכת באמצעות Windows API.
+Interactive Display: Renders the remote screen in a full-screen window.
 
-בצד הלקוח:
+Input Sampling: Monitors local mouse and keyboard events to send them to the server.
 
-מתקבלים חלקי המסך ומורכבים מחדש לתמונה מלאה.
+Resolution Scaling: Calculates coordinate mapping between client and server resolutions to ensure precise mouse positioning.
 
-מוצג חלון Fullscreen עם שידור המסך.
+Technical Highlights
+Multithreading: Separates screen capture, network I/O, and input processing to prevent performance bottlenecks.
 
-תנועות עכבר והקשות מקלדת נשלחות לשרת.
+Custom Binary Protocol: Uses the struct library to pack data into efficient binary packets, minimizing overhead.
 
-מתבצע מיפוי רזולוציות בין הלקוח לשרת לצורך דיוק בתנועת העכבר.
+Low-Level Integration: Interfaces directly with the Win32 API for high-performance input injection.
 
-נקודות טכניות מרכזיות
+Modular Design: Clean separation of concerns between Keyboard, Mouse, and Screen components.
 
-שימוש ב-Multithreading להפרדה בין קליטת מסך, שליחת קלט וטיפול ברשת.
+Project Structure:
 
-טיפול ב-Head-of-Line Blocking על ידי שימוש ב-UDP לשידור וידאו.
-
-שימוש ב-struct לצורך אריזת נתונים בפרוטוקול מותאם אישית.
-
-עבודה מול Win32 API להזרקת קלט (SendInput).
-
-תכנון מבנה מודולרי עם הפרדה לרכיבי Keyboard, Mouse ו-Screen.
-
-מבנה הפרויקט
 project/
 │
-├── const.py
-├── protocol.py
-├── server.py
-├── client.py
-└── components/
+├── const.py             # System constants and configurations
+├── protocol.py          # Custom packet definitions
+├── server.py            # Main server logic
+├── client.py            # Main client logic
+└── components/          # Functional modules
     ├── keyboard_component.py
     ├── mouse_component.py
     └── screen_component.py
-הערה חשובה
-
-הפרויקט נבנה לצורכי לימוד והעמקה במערכות הפעלה, רשתות וארכיטקטורת תוכנה.
-אין בו מנגנוני הצפנה או אימות, ולכן אין לחשוף אותו לרשת ציבורית.
-
-אם תרצה — אני יכול עכשיו לעזור לך להוסיף פסקה קצרה שמסבירה למה בנית את הפרויקט (וזה משהו שמראיינים ממש אוהבים לראות).
